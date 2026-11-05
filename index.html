@@ -5,18 +5,13 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <title>Trekvogelpad</title>
 
-  <!-- PWA & Volledig scherm instellingen -->
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="theme-color" content="#7c3aed" />
 
-  <!-- Dynamisch Web App Manifest voor standalone weergave zonder adresbalk -->
-  <link rel="manifest" href="data:application/manifest+json,%7B%22name%22%3A%22Trekvogelpad%22%2C%22short_name%22%3A%22Trekvogelpad%22%2C%22start_url%22%3A%22.%22%2C%22display%22%3A%22standalone%22%2C%22background_color%22%3A%22%237c3aed%22%2C%22theme_color%22%3A%22%237c3aed%22%2C%22icons%22%3A%5B%7B%22src%22%3A%22data%3Aimage%2Fsvg%2Bxml%2C%253Csvg%20xmlns%3D'http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg'%20viewBox%3D'0%200%20120%20120'%253E%253Crect%20width%3D'120'%20height%3D'120'%20rx%3D'28'%20fill%3D'%25237c3aed'%2F%253E%253Ccircle%20cx%3D'62'%20cy%3D'26'%20r%3D'9'%20fill%3D'%2523ffffff'%2F%253E%253Cpath%20d%3D'M38%2036%20h14%20a4%204%200%200%201%204%204%20v28%20a4%204%200%200%201%20-4%204%20h-14%20a4%204%200%200%201%20-4%20-4%20v-28%20a4%204%200%200%201%204%20-4%20z'%20fill%3D'%2523ffffff'%2F%253E%253Cpath%20d%3D'M58%2040%20h8%20l12%2014%20h12%20v6%20h-14%20l-10%20-11%20l-4%2022%20l18%2028%20h-9%20l-15%20-24%20l-9%2024%20h-9%20l13%20-33%20l-2%20-12%20z'%20fill%3D'%2523ffffff'%2F%253E%253Cline%20x1%3D'90'%20y1%3D'44'%20x2%3D'90'%20y2%3D'104'%20stroke%3D'%2523ffffff'%20stroke-width%3D'4'%20stroke-linecap%3D'round'%2F%253E%253C%2Fsvg%253E%22%2C%22sizes%22%3A%22192x192%22%2C%22type%22%3A%22image%2Fsvg%2Bxml%22%2C%22purpose%22%3A%22any%20maskable%22%7D%5D%7D" />
-
-  <!-- App-iconen voor Android & iOS (Paars vlak met stappende wandelaar, rugzak en stok) -->
-  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 120'%3E%3Crect width='120' height='120' rx='28' fill='%237c3aed'/%3E%3Ccircle cx='62' cy='26' r='9' fill='%23ffffff'/%3E%3Cpath d='M38 36 h14 a4 4 0 0 1 4 4 v28 a4 4 0 0 1 -4 4 h-14 a4 4 0 0 1 -4 -4 v-28 a4 4 0 0 1 4 -4 z' fill='%23ffffff'/%3E%3Cpath d='M58 40 h8 l12 14 h12 v6 h-14 l-10 -11 l-4 22 l18 28 h-9 l-15 -24 l-9 24 h-9 l13 -33 l-2 -12 z' fill='%23ffffff'/%3E%3Cline x1='90' y1='44' x2='90' y2='104' stroke='%23ffffff' stroke-width='4' stroke-linecap='round'/%3E%3C/svg%3E" />
-  <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 120'%3E%3Crect width='120' height='120' rx='28' fill='%237c3aed'/%3E%3Ccircle cx='62' cy='26' r='9' fill='%23ffffff'/%3E%3Cpath d='M38 36 h14 a4 4 0 0 1 4 4 v28 a4 4 0 0 1 -4 4 h-14 a4 4 0 0 1 -4 -4 v-28 a4 4 0 0 1 4 -4 z' fill='%23ffffff'/%3E%3Cpath d='M58 40 h8 l12 14 h12 v6 h-14 l-10 -11 l-4 22 l18 28 h-9 l-15 -24 l-9 24 h-9 l13 -33 l-2 -12 z' fill='%23ffffff'/%3E%3Cline x1='90' y1='44' x2='90' y2='104' stroke='%23ffffff' stroke-width='4' stroke-linecap='round'/%3E%3C/svg%3E" />
+  <link rel="manifest" href="manifest.json" />
+  <link rel="icon" type="image/svg+xml" href="icon.svg" />
+  <link rel="apple-touch-icon" href="icon.svg" />
 
   <style>
     html, body {
@@ -27,7 +22,6 @@
       overflow: hidden;
       background-color: #f2efe9;
     }
-
     #umap-frame {
       width: 100%;
       height: 100%;
