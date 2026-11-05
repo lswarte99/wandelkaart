@@ -9,7 +9,7 @@
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="theme-color" content="#7c3aed" />
 
-  <link rel="manifest" href="manifest.json" />
+  <link rel="manifest" href="manifest.json?v=3" />
   <link rel="icon" type="image/png" sizes="192x192" href="icon.png" />
   <link rel="apple-touch-icon" href="icon.png" />
 
@@ -32,6 +32,44 @@
       height: 100%;
       border: none;
       display: block;
+    }
+
+    /* Vaste GPS-stip midden op het scherm zodra gecentreerd */
+    #user-marker {
+      display: none;
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 22px;
+      height: 22px;
+      pointer-events: none;
+      z-index: 9998;
+    }
+
+    #user-marker .dot {
+      width: 14px;
+      height: 14px;
+      background-color: #2563eb;
+      border: 2.5px solid #ffffff;
+      border-radius: 50%;
+      position: absolute;
+      top: 4px;
+      left: 4px;
+      box-shadow: 0 0 6px rgba(0, 0, 0, 0.4);
+    }
+
+    #user-marker .ring {
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      background-color: rgba(37, 99, 235, 0.25);
+      animation: pulse-ring 2s infinite ease-out;
+    }
+
+    @keyframes pulse-ring {
+      0% { transform: scale(0.7); opacity: 0.8; }
+      100% { transform: scale(1.6); opacity: 0; }
     }
 
     /* Minimalistische vizier-knop */
@@ -62,7 +100,6 @@
       transition: fill 0.2s;
     }
 
-    /* Actieve satelliet-status */
     .gps-btn.active {
       background-color: #f5f3ff;
       border-color: #7c3aed;
@@ -72,7 +109,6 @@
       fill: #7c3aed;
     }
 
-    /* Subtiele statusindicator voor fix */
     .gps-btn.searching svg {
       opacity: 0.4;
       animation: pulse 1.2s infinite ease-in-out;
@@ -87,12 +123,18 @@
 </head>
 <body>
 
-  <!-- uMap iframe: locateControl uitgeschakeld om dubbele knoppen te voorkomen -->
+  <!-- uMap iframe met vaste startcoördinaten op de route (Usselo/Enschede) -->
   <iframe 
     id="umap-frame" 
-    src="https://umap.openstreetmap.fr/nl/map/vanlife_1370754?scaleControl=false&miniMap=false&scrollWheelZoom=true&locateControl=false" 
+    src="https://umap.openstreetmap.fr/nl/map/vanlife_1370754?scaleControl=false&miniMap=false&scrollWheelZoom=true&locateControl=false#13/52.2030/6.8400" 
     allow="geolocation">
   </iframe>
+
+  <!-- Visuele GPS-indicator (blauwe stip) -->
+  <div id="user-marker">
+    <div class="ring"></div>
+    <div class="dot"></div>
+  </div>
 
   <!-- Minimalistische vizierknop -->
   <button id="gpsBtn" class="gps-btn" title="Volg GPS-locatie" aria-label="Volg GPS-locatie">
@@ -104,6 +146,7 @@
   <script>
     const iframe = document.getElementById('umap-frame');
     const btn = document.getElementById('gpsBtn');
+    const marker = document.getElementById('user-marker');
     let watchId = null;
     let currentZoom = 15;
 
@@ -113,6 +156,7 @@
         navigator.geolocation.clearWatch(watchId);
         watchId = null;
         btn.classList.remove('active', 'searching');
+        marker.style.display = 'none';
       } else {
         // Inschakelen met maximale satelliet-precisie
         btn.classList.add('searching');
@@ -121,23 +165,25 @@
           (pos) => {
             btn.classList.remove('searching');
             btn.classList.add('active');
+            marker.style.display = 'block';
 
             const lat = pos.coords.latitude.toFixed(5);
             const lng = pos.coords.longitude.toFixed(5);
 
-            // Centreer de kaart in de uMap-iframe zonder herladen
+            // Centreer de kaart in het uMap-frame
             iframe.contentWindow.location.replace(
               `https://umap.openstreetmap.fr/nl/map/vanlife_1370754?scaleControl=false&miniMap=false&scrollWheelZoom=true&locateControl=false#${currentZoom}/${lat}/${lng}`
             );
           },
           (err) => {
             btn.classList.remove('searching', 'active');
-            alert('Geen satelliet-GPS fix kunnen krijgen: ' + err.message);
+            marker.style.display = 'none';
+            alert('Geen satelliet-GPS fix: ' + err.message);
             navigator.geolocation.clearWatch(watchId);
             watchId = null;
           },
           {
-            enableHighAccuracy: true, // Dwingt fysieke GPS-satellietchip af
+            enableHighAccuracy: true,
             timeout: 12000,
             maximumAge: 0
           }
