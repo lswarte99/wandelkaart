@@ -3,13 +3,13 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>Trekvogelpad</title>
+  <title>Hanzestedenpad</title>
 
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="theme-color" content="#7c3aed" />
 
-  <link rel="manifest" href="manifest.json?v=4" />
+  <link rel="manifest" href="manifest.json?v=5" />
   <link rel="icon" type="image/png" sizes="192x192" href="icon.png" />
   <link rel="apple-touch-icon" href="icon.png" />
 
@@ -123,10 +123,10 @@
 </head>
 <body>
 
-  <!-- uMap iframe: alleen zoeken en lagen actief -->
+  <!-- uMap iframe: Hanzestedenpad met gefilterde controls -->
   <iframe 
     id="umap-frame" 
-    src="https://umap.openstreetmap.fr/nl/map/vanlife_1370754?scaleControl=false&miniMap=false&scrollWheelZoom=true&locateControl=false&zoomControl=false&fullscreenControl=false&shareControl=false&moreControl=false" 
+    src="https://umap.openstreetmap.fr/nl/map/hanzenstedenpad_1481330?scaleControl=false&miniMap=false&scrollWheelZoom=true&locateControl=false&zoomControl=false&fullscreenControl=false&shareControl=false&moreControl=false" 
     allow="geolocation *; autoplay; encrypted-media">
   </iframe>
 
@@ -139,7 +139,7 @@
   <!-- Minimalistische vizierknop -->
   <button id="gpsBtn" class="gps-btn" title="Volg GPS-locatie" aria-label="Volg GPS-locatie">
     <svg viewBox="0 0 24 24">
-      <path d="M12 2a1 1 0 0 1 1 1v1.055A8.002 8.002 0 0 1 19.945 11H21a1 1 0 1 1 0 2h-1.055A8.002 8.002 0 0 1 13 19.945V21a1 1 0 1 1-2 0v-1.055A8.002 8.002 0 0 1 4.055 13H3a1 1 0 1 1 0-2h1.055A8.002 8.002 0 0 1 11 4.055V3a1 1 0 0 1 1-1zm0 4a6 6 0 1 0 0 12 6 6 0 0 0 0-12zm0 3a3 3 0 1 1 0 6 3 3 0 0 1 0-6z"/>
+      <path d="M12 2a1 1 0 0 1 1 1v1.055A8.002 8.002 0 0 1 19.945 11H21a1 1 0 1 1 0 2h-1.055A8.002 8.002 0 0 1 13 19.945V21a1 1 0 1 1-2 0v-1.055A8.002 8.002 0 0 1 11 4.055V3a1 1 0 0 1 1-1zm0 4a6 6 0 1 0 0 12 6 6 0 0 0 0-12zm0 3a3 3 0 1 1 0 6 3 3 0 0 1 0-6z"/>
     </svg>
   </button>
 
@@ -147,7 +147,7 @@
     const iframe = document.getElementById('umap-frame');
     const btn = document.getElementById('gpsBtn');
     const marker = document.getElementById('user-marker');
-    const baseUrl = "https://umap.openstreetmap.fr/nl/map/vanlife_1370754?scaleControl=false&miniMap=false&scrollWheelZoom=true&locateControl=false&zoomControl=false&fullscreenControl=false&shareControl=false&moreControl=false";
+    const baseUrl = "https://umap.openstreetmap.fr/nl/map/hanzenstedenpad_1481330?scaleControl=false&miniMap=false&scrollWheelZoom=true&locateControl=false&zoomControl=false&fullscreenControl=false&shareControl=false&moreControl=false";
     let watchId = null;
 
     btn.addEventListener('click', () => {
