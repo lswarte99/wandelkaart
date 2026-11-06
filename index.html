@@ -9,7 +9,7 @@
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="theme-color" content="#7c3aed" />
 
-  <link rel="manifest" href="manifest.json?v=3" />
+  <link rel="manifest" href="manifest.json?v=4" />
   <link rel="icon" type="image/png" sizes="192x192" href="icon.png" />
   <link rel="apple-touch-icon" href="icon.png" />
 
@@ -34,7 +34,7 @@
       display: block;
     }
 
-    /* Vaste GPS-stip midden op het scherm zodra gecentreerd */
+    /* Vaste GPS-stip midden op het scherm */
     #user-marker {
       display: none;
       position: absolute;
@@ -123,11 +123,11 @@
 </head>
 <body>
 
-  <!-- uMap iframe met vaste startcoördinaten op de route (Usselo/Enschede) -->
+  <!-- uMap iframe: alleen zoeken en lagen actief -->
   <iframe 
     id="umap-frame" 
-    src="https://umap.openstreetmap.fr/nl/map/vanlife_1370754?scaleControl=false&miniMap=false&scrollWheelZoom=true&locateControl=false#13/52.2030/6.8400" 
-    allow="geolocation">
+    src="https://umap.openstreetmap.fr/nl/map/vanlife_1370754?scaleControl=false&miniMap=false&scrollWheelZoom=true&locateControl=false&zoomControl=false&fullscreenControl=false&shareControl=false&moreControl=false" 
+    allow="geolocation *; autoplay; encrypted-media">
   </iframe>
 
   <!-- Visuele GPS-indicator (blauwe stip) -->
@@ -147,21 +147,19 @@
     const iframe = document.getElementById('umap-frame');
     const btn = document.getElementById('gpsBtn');
     const marker = document.getElementById('user-marker');
+    const baseUrl = "https://umap.openstreetmap.fr/nl/map/vanlife_1370754?scaleControl=false&miniMap=false&scrollWheelZoom=true&locateControl=false&zoomControl=false&fullscreenControl=false&shareControl=false&moreControl=false";
     let watchId = null;
-    let currentZoom = 15;
 
     btn.addEventListener('click', () => {
       if (watchId !== null) {
-        // Uitschakelen
         navigator.geolocation.clearWatch(watchId);
         watchId = null;
         btn.classList.remove('active', 'searching');
         marker.style.display = 'none';
       } else {
-        // Inschakelen met maximale satelliet-precisie
         btn.classList.add('searching');
 
-        watchId = navigator.geolocation.watchPosition(
+        navigator.geolocation.getCurrentPosition(
           (pos) => {
             btn.classList.remove('searching');
             btn.classList.add('active');
@@ -170,23 +168,27 @@
             const lat = pos.coords.latitude.toFixed(5);
             const lng = pos.coords.longitude.toFixed(5);
 
-            // Centreer de kaart in het uMap-frame
-            iframe.contentWindow.location.replace(
-              `https://umap.openstreetmap.fr/nl/map/vanlife_1370754?scaleControl=false&miniMap=false&scrollWheelZoom=true&locateControl=false#${currentZoom}/${lat}/${lng}`
-            );
+            iframe.src = `${baseUrl}#15/${lat}/${lng}`;
           },
           (err) => {
             btn.classList.remove('searching', 'active');
             marker.style.display = 'none';
             alert('Geen satelliet-GPS fix: ' + err.message);
-            navigator.geolocation.clearWatch(watchId);
-            watchId = null;
           },
           {
             enableHighAccuracy: true,
-            timeout: 12000,
+            timeout: 10000,
             maximumAge: 0
           }
+        );
+
+        watchId = navigator.geolocation.watchPosition(
+          (pos) => {
+            btn.classList.add('active');
+            marker.style.display = 'block';
+          },
+          null,
+          { enableHighAccuracy: true }
         );
       }
     });
