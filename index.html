@@ -9,7 +9,7 @@
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="theme-color" content="#7c3aed" />
 
-  <link rel="manifest" href="manifest.json?v=5" />
+  <link rel="manifest" href="manifest.json?v=6" />
   <link rel="icon" type="image/png" sizes="192x192" href="icon.png" />
   <link rel="apple-touch-icon" href="icon.png" />
 
@@ -123,10 +123,10 @@
 </head>
 <body>
 
-  <!-- uMap iframe: Hanzestedenpad met gefilterde controls -->
+  <!-- uMap iframe met geforceerde Nederlandse taal en startpositie Doesburg -->
   <iframe 
     id="umap-frame" 
-    src="https://umap.openstreetmap.fr/nl/map/hanzenstedenpad_1481330?scaleControl=false&miniMap=false&scrollWheelZoom=true&locateControl=false&zoomControl=false&fullscreenControl=false&shareControl=false&moreControl=false" 
+    src="https://umap.openstreetmap.fr/nl/map/hanzenstedenpad_1481330?scaleControl=false&miniMap=false&scrollWheelZoom=true&locateControl=false&zoomControl=false&fullscreenControl=false&shareControl=false&moreControl=false&locale=nl#12/52.0266/6.1322" 
     allow="geolocation *; autoplay; encrypted-media">
   </iframe>
 
@@ -147,7 +147,7 @@
     const iframe = document.getElementById('umap-frame');
     const btn = document.getElementById('gpsBtn');
     const marker = document.getElementById('user-marker');
-    const baseUrl = "https://umap.openstreetmap.fr/nl/map/hanzenstedenpad_1481330?scaleControl=false&miniMap=false&scrollWheelZoom=true&locateControl=false&zoomControl=false&fullscreenControl=false&shareControl=false&moreControl=false";
+    const baseUrl = "https://umap.openstreetmap.fr/nl/map/hanzenstedenpad_1481330?scaleControl=false&miniMap=false&scrollWheelZoom=true&locateControl=false&zoomControl=false&fullscreenControl=false&shareControl=false&moreControl=false&locale=nl";
     let watchId = null;
 
     btn.addEventListener('click', () => {
