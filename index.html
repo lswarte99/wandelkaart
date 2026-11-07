@@ -158,10 +158,10 @@
     <option value="10/52.3038/6.0836">IJsselvallei (Overzicht)</option>
   </select>
 
-  <!-- uMap iframe (alle zijbalkknoppen uitgeschakeld) -->
+ <!-- uMap iframe (parameters vóór de hash, zodat uMap alle knoppen uitzet) -->
   <iframe 
     id="umap-frame" 
-    src="https://umap.openstreetmap.fr/nl/map/hanzenstedenpad_1481330#12/52.0266/6.1322?scaleControl=false&miniMap=false&scrollWheelZoom=true&locateControl=false&zoomControl=false&fullscreenControl=false&shareControl=false&moreControl=false&datalayersControl=false&locale=nl" 
+    src="https://umap.openstreetmap.fr/nl/map/hanzenstedenpad_1481330?scaleControl=false&miniMap=false&scrollWheelZoom=true&locateControl=false&zoomControl=false&fullscreenControl=false&shareControl=false&moreControl=false&datalayersControl=false&searchControl=false&tilelayersControl=false&embedControl=false&locale=nl#12/52.0266/6.1322" 
     allow="geolocation *; autoplay; encrypted-media">
   </iframe>
 
@@ -189,8 +189,7 @@
     const marker = document.getElementById('user-marker');
     const stageSelect = document.getElementById('stageSelect');
 
-    const baseMap = "https://umap.openstreetmap.fr/nl/map/hanzenstedenpad_1481330";
-    const baseParams = "scaleControl=false&miniMap=false&scrollWheelZoom=true&locateControl=false&zoomControl=false&fullscreenControl=false&shareControl=false&moreControl=false&datalayersControl=false&locale=nl";
+    const baseParams = "https://umap.openstreetmap.fr/nl/map/hanzenstedenpad_1481330?scaleControl=false&miniMap=false&scrollWheelZoom=true&locateControl=false&zoomControl=false&fullscreenControl=false&shareControl=false&moreControl=false&datalayersControl=false&searchControl=false&tilelayersControl=false&embedControl=false&locale=nl";
     let watchId = null;
 
     function resetGpsState() {
@@ -206,7 +205,7 @@
     stageSelect.addEventListener('change', (e) => {
       resetGpsState();
       const coords = e.target.value;
-      iframe.src = `${baseMap}#${coords}?${baseParams}&_t=${Date.now()}`;
+      iframe.src = `${baseParams}&_t=${Date.now()}#${coords}`;
     });
 
     // Vizier knop aansturing
@@ -224,7 +223,7 @@
 
             const lat = pos.coords.latitude.toFixed(5);
             const lng = pos.coords.longitude.toFixed(5);
-            iframe.src = `${baseMap}#15/${lat}/${lng}?${baseParams}&_t=${Date.now()}`;
+            iframe.src = `${baseParams}&_t=${Date.now()}#15/${lat}/${lng}`;
           },
           (err) => {
             resetGpsState();
