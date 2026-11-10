@@ -130,4 +130,80 @@
       top: 14px;
       left: 14px;
       z-index: 9999;
-      background: rgba(255, 255,
+      background: rgba(255, 255, 255, 0.92);
+      border: 1.5px solid rgba(0, 0, 0, 0.15);
+      border-radius: 8px;
+      padding: 7px 12px;
+      font-size: 13px;
+      font-weight: 600;
+      color: #333333;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.18);
+      outline: none;
+      backdrop-filter: blur(4px);
+      -webkit-appearance: none;
+      appearance: none;
+      background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23444444' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+      background-repeat: no-repeat;
+      background-position: right 8px center;
+      background-size: 14px;
+      padding-right: 28px;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- TIJDELIJK BEVROREN: Etappe snelkiezer
+  <select id="stageSelect" class="stage-selector">
+    <option value="12/52.0266/6.1322">Etappe 1: Doesburg – Dieren</option>
+    <option value="13/52.0712/6.1295">Etappe 2: Dieren – Brummen</option>
+    <option value="10/52.3038/6.0836">IJsselvallei (Overzicht)</option>
+  </select>
+  -->
+
+  <!-- uMap iframe (start gecentreerd op het begin van de wandelroute) -->
+  <iframe 
+    id="umap-frame" 
+    src="https://umap.openstreetmap.fr/nl/map/hanzenstedenpad_1481330?scaleControl=false&miniMap=false&scrollWheelZoom=true&locateControl=false&zoomControl=false&fullscreenControl=false&shareControl=false&moreControl=false&datalayersControl=false&locale=nl#12/52.0450/6.1550" 
+    allow="geolocation *; autoplay; encrypted-media">
+  </iframe>
+
+  <!-- Visuele GPS-indicator (blauwe stip) -->
+  <div id="user-marker">
+    <div class="ring"></div>
+    <div class="dot"></div>
+  </div>
+
+  <!-- Symmetrisch 4-punts vizier -->
+  <button id="gpsBtn" class="gps-btn" title="Volg GPS-locatie" aria-label="Volg GPS-locatie">
+    <svg viewBox="0 0 24 24">
+      <circle cx="12" cy="12" r="7" />
+      <line x1="12" y1="1" x2="12" y2="5" />
+      <line x1="12" y1="19" x2="12" y2="23" />
+      <line x1="1" y1="12" x2="5" y2="12" />
+      <line x1="19" y1="12" x2="23" y2="12" />
+      <circle cx="12" cy="12" r="2" fill="#444444" stroke="none" />
+    </svg>
+  </button>
+
+  <script>
+    const iframe = document.getElementById('umap-frame');
+    const btn = document.getElementById('gpsBtn');
+    const marker = document.getElementById('user-marker');
+    const stageSelect = document.getElementById('stageSelect');
+
+    const baseParams = "https://umap.openstreetmap.fr/nl/map/hanzenstedenpad_1481330?scaleControl=false&miniMap=false&scrollWheelZoom=true&locateControl=false&zoomControl=false&fullscreenControl=false&shareControl=false&moreControl=false&datalayersControl=false&locale=nl";
+    let watchId = null;
+
+    function resetGpsState() {
+      if (watchId !== null) {
+        navigator.geolocation.clearWatch(watchId);
+        watchId = null;
+      }
+      btn.classList.remove('active', 'searching');
+      marker.style.display = 'none';
+    }
+
+    /* TIJDELIJK BEVROREN: EventListener voor etappekiezer
+    if (stageSelect) {
+      stageSelect.addEventListener('change', (e) => {
+        resetG
