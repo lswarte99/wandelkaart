@@ -206,4 +206,51 @@
     /* TIJDELIJK BEVROREN: EventListener voor etappekiezer
     if (stageSelect) {
       stageSelect.addEventListener('change', (e) => {
-        resetG
+        resetGpsState();
+        const coords = e.target.value;
+        iframe.src = `${baseParams}&_t=${Date.now()}#${coords}`;
+      });
+    }
+    */
+
+    // Vizier knop aansturing
+    btn.addEventListener('click', () => {
+      if (watchId !== null) {
+        resetGpsState();
+      } else {
+        btn.classList.add('searching');
+
+        navigator.geolocation.getCurrentPosition(
+          (pos) => {
+            btn.classList.remove('searching');
+            btn.classList.add('active');
+            marker.style.display = 'block';
+
+            const lat = pos.coords.latitude.toFixed(5);
+            const lng = pos.coords.longitude.toFixed(5);
+            iframe.src = `${baseParams}&_t=${Date.now()}#15/${lat}/${lng}`;
+          },
+          (err) => {
+            resetGpsState();
+            alert('Geen satelliet-GPS fix: ' + err.message);
+          },
+          {
+            enableHighAccuracy: true,
+            timeout: 10000,
+            maximumAge: 0
+          }
+        );
+
+        watchId = navigator.geolocation.watchPosition(
+          (pos) => {
+            btn.classList.add('active');
+            marker.style.display = 'block';
+          },
+          null,
+          { enableHighAccuracy: true }
+        );
+      }
+    });
+  </script>
+</body>
+</html>
