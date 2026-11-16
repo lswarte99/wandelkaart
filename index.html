@@ -1,265 +1,107 @@
 <!DOCTYPE html>
 <html lang="nl">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>Hanzestedenpad</title>
-
-  <meta name="mobile-web-app-capable" content="yes" />
-  <meta name="apple-mobile-web-app-capable" content="yes" />
-  <meta name="theme-color" content="#7c3aed" />
-
-  <link rel="manifest" href="manifest.json?v=11" />
-  <link rel="icon" type="image/png" sizes="192x192" href="icon.png" />
-  <link rel="apple-touch-icon" href="icon.png" />
-
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Wandelkaart - Centrale Hub</title>
   <style>
-    * {
-      box-sizing: border-box;
+    :root {
+      --bg-color: #f2efe9;
+      --card-bg: #ffffff;
+      --text-color: #2c2c2c;
+      --accent-color: #7c3aed;
+      --accent-hover: #6d28d9;
+      --border-color: #e5e2db;
     }
-    html, body {
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background-color: var(--bg-color);
+      color: var(--text-color);
       margin: 0;
-      padding: 0;
-      width: 100%;
-      height: 100%;
-      overflow: hidden;
-      background-color: #f2efe9;
-      font-family: sans-serif;
-    }
-
-    #umap-frame {
-      width: 100%;
-      height: 100%;
-      border: none;
-      display: block;
-    }
-
-    /* Vaste GPS-stip midden op het scherm */
-    #user-marker {
-      display: none;
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      width: 22px;
-      height: 22px;
-      pointer-events: none;
-      z-index: 9998;
-    }
-
-    #user-marker .dot {
-      width: 14px;
-      height: 14px;
-      background-color: #2563eb;
-      border: 2.5px solid #ffffff;
-      border-radius: 50%;
-      position: absolute;
-      top: 4px;
-      left: 4px;
-      box-shadow: 0 0 6px rgba(0, 0, 0, 0.4);
-    }
-
-    #user-marker .ring {
-      width: 22px;
-      height: 22px;
-      border-radius: 50%;
-      background-color: rgba(37, 99, 235, 0.25);
-      animation: pulse-ring 2s infinite ease-out;
-    }
-
-    @keyframes pulse-ring {
-      0% { transform: scale(0.7); opacity: 0.8; }
-      100% { transform: scale(1.6); opacity: 0; }
-    }
-
-    /* Minimalistische vizier-knop */
-    .gps-btn {
-      position: absolute;
-      bottom: 24px;
-      right: 18px;
-      width: 48px;
-      height: 48px;
-      background-color: #ffffff;
-      border: 2px solid rgba(0, 0, 0, 0.15);
-      border-radius: 50%;
+      padding: 20px;
       display: flex;
+      flex-direction: column;
       align-items: center;
-      justify-content: center;
-      box-shadow: 0 3px 8px rgba(0, 0, 0, 0.25);
-      cursor: pointer;
-      z-index: 9999;
-      outline: none;
-      transition: background-color 0.2s, border-color 0.2s;
-      -webkit-tap-highlight-color: transparent;
+      min-height: 100vh;
     }
-
-    .gps-btn svg {
-      width: 24px;
-      height: 24px;
-      stroke: #444444;
-      stroke-width: 2;
-      fill: none;
-      stroke-linecap: round;
-      stroke-linejoin: round;
-      transition: stroke 0.2s;
+    .container {
+      width: 100%;
+      max-width: 600px;
+      margin-top: 20px;
     }
-
-    .gps-btn.active {
-      background-color: #f5f3ff;
-      border-color: #7c3aed;
+    header {
+      text-align: center;
+      margin-bottom: 30px;
     }
-
-    .gps-btn.active svg {
-      stroke: #7c3aed;
+    h1 {
+      font-size: 1.8rem;
+      margin-bottom: 8px;
     }
-
-    .gps-btn.searching svg {
-      opacity: 0.4;
-      animation: pulse 1.2s infinite ease-in-out;
+    p.subtitle {
+      color: #666;
+      font-size: 0.95rem;
+      margin: 0;
     }
-
-    @keyframes pulse {
-      0% { transform: scale(0.9); opacity: 0.3; }
-      50% { transform: scale(1.08); opacity: 0.8; }
-      100% { transform: scale(0.9); opacity: 0.3; }
+    .card-list {
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
     }
-
-    /* Styling voor etappemenu (staat klaar voor later) */
-    .stage-selector {
-      position: absolute;
-      top: 14px;
-      left: 14px;
-      z-index: 9999;
-      background: rgba(255, 255, 255, 0.92);
-      border: 1.5px solid rgba(0, 0, 0, 0.15);
-      border-radius: 8px;
-      padding: 7px 12px;
-      font-size: 13px;
+    .card {
+      background-color: var(--card-bg);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 20px;
+      text-decoration: none;
+      color: inherit;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+      transition: transform 0.15s ease, border-color 0.15s ease;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .card:hover {
+      transform: translateY(-2px);
+      border-color: var(--accent-color);
+    }
+    .card-title {
+      font-size: 1.15rem;
       font-weight: 600;
-      color: #333333;
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.18);
-      outline: none;
-      backdrop-filter: blur(4px);
-      -webkit-appearance: none;
-      appearance: none;
-      background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23444444' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
-      background-repeat: no-repeat;
-      background-position: right 8px center;
-      background-size: 14px;
-      padding-right: 28px;
+      margin: 0 0 4px 0;
+      color: var(--accent-color);
+    }
+    .card-desc {
+      font-size: 0.85rem;
+      color: #666;
+      margin: 0;
+    }
+    .arrow {
+      font-size: 1.2rem;
+      color: #999;
     }
   </style>
 </head>
 <body>
 
-  <!-- TIJDELIJK BEVROREN: Etappe snelkiezer
-  <select id="stageSelect" class="stage-selector">
-    <option value="#12/52.0266/6.1322">Etappe 1: Doesburg – Dieren</option>
-    <option value="#13/52.0712/6.1295">Etappe 2: Dieren – Brummen</option>
-    <option value="#13/52.118154/6.151314">Etappe 3: Brummen – Hoven</option>
-    <option value="#12/52.189825/6.179466">Etappe 4: Hoven – Wilp</option>
-    <option value="#12/52.259647/6.152000">Etappe 5: Wilp – Diepenveen</option>
-    <option value="#13/52.319550/6.117153">Etappe 6: Diepenveen – Olst</option>
-    <option value="#13/52.369573/6.115437">Etappe 7: Olst – Wijhe</option>
-    <option value="#13/52.428123/6.131401">Etappe 8: Wijhe – Zuthemerweg</option>
-    <option value="#13/52.494226/6.138268">Etappe 9: Zuthemerweg – Zwolle</option>
-    <option value="#14/52.506087/6.085052">Etappe 10: Zwolle</option>
-    <option value="#12/52.531470/5.978279">Etappe 11: Zwolle - Kampen</option>
-    <option value="10/52.3038/6.0836">IJsselvallei (Overzicht)</option>
-  </select>
-  -->
+  <div class="container">
+    <header>
+      <h1>Wandelprojecten</h1>
+      <p class="subtitle">Overzicht van persoonlijke wandelroutes</p>
+    </header>
 
-  <!-- uMap iframe (start gecentreerd op het begin van de wandelroute) -->
-  <iframe 
-    id="umap-frame" 
-    src="https://umap.openstreetmap.fr/nl/map/hanzenstedenpad_1481330?scaleControl=false&miniMap=false&scrollWheelZoom=true&locateControl=false&zoomControl=false&fullscreenControl=false&shareControl=false&moreControl=false&datalayersControl=false&locale=nl#12/52.0450/6.1550" 
-    allow="geolocation *; autoplay; encrypted-media">
-  </iframe>
+    <div class="card-list">
+      <!-- Hanzestedenpad Kaart -->
+      <a href="./hanzesteden/" class="card">
+        <div>
+          <h2 class="card-title">Hanzestedenpad</h2>
+          <p class="card-desc">Bekijk de etappes en interactieve kaart van het Hanzestedenpad.</p>
+        </div>
+        <div class="arrow">&rarr;</div>
+      </a>
 
-  <!-- Visuele GPS-indicator (blauwe stip) -->
-  <div id="user-marker">
-    <div class="ring"></div>
-    <div class="dot"></div>
+      <!-- Toekomstige kaarten kun je hier makkelijk onderzetten -->
+    </div>
   </div>
 
-  <!-- Symmetrisch 4-punts vizier -->
-  <button id="gpsBtn" class="gps-btn" title="Volg GPS-locatie" aria-label="Volg GPS-locatie">
-    <svg viewBox="0 0 24 24">
-      <circle cx="12" cy="12" r="7" />
-      <line x1="12" y1="1" x2="12" y2="5" />
-      <line x1="12" y1="19" x2="12" y2="23" />
-      <line x1="1" y1="12" x2="5" y2="12" />
-      <line x1="19" y1="12" x2="23" y2="12" />
-      <circle cx="12" cy="12" r="2" fill="#444444" stroke="none" />
-    </svg>
-  </button>
-
-  <script>
-    const iframe = document.getElementById('umap-frame');
-    const btn = document.getElementById('gpsBtn');
-    const marker = document.getElementById('user-marker');
-    const stageSelect = document.getElementById('stageSelect');
-
-    const baseParams = "https://umap.openstreetmap.fr/nl/map/hanzenstedenpad_1481330?scaleControl=false&miniMap=false&scrollWheelZoom=true&locateControl=false&zoomControl=false&fullscreenControl=false&shareControl=false&moreControl=false&datalayersControl=false&locale=nl";
-    let watchId = null;
-
-    function resetGpsState() {
-      if (watchId !== null) {
-        navigator.geolocation.clearWatch(watchId);
-        watchId = null;
-      }
-      btn.classList.remove('active', 'searching');
-      marker.style.display = 'none';
-    }
-
-    /* TIJDELIJK BEVROREN: EventListener voor etappekiezer
-    if (stageSelect) {
-      stageSelect.addEventListener('change', (e) => {
-        resetGpsState();
-        const coords = e.target.value;
-        iframe.src = `${baseParams}&_t=${Date.now()}#${coords}`;
-      });
-    }
-    */
-
-    // Vizier knop aansturing
-    btn.addEventListener('click', () => {
-      if (watchId !== null) {
-        resetGpsState();
-      } else {
-        btn.classList.add('searching');
-
-        navigator.geolocation.getCurrentPosition(
-          (pos) => {
-            btn.classList.remove('searching');
-            btn.classList.add('active');
-            marker.style.display = 'block';
-
-            const lat = pos.coords.latitude.toFixed(5);
-            const lng = pos.coords.longitude.toFixed(5);
-            iframe.src = `${baseParams}&_t=${Date.now()}#15/${lat}/${lng}`;
-          },
-          (err) => {
-            resetGpsState();
-            alert('Geen satelliet-GPS fix: ' + err.message);
-          },
-          {
-            enableHighAccuracy: true,
-            timeout: 10000,
-            maximumAge: 0
-          }
-        );
-
-        watchId = navigator.geolocation.watchPosition(
-          (pos) => {
-            btn.classList.add('active');
-            marker.style.display = 'block';
-          },
-          null,
-          { enableHighAccuracy: true }
-        );
-      }
-    });
-  </script>
 </body>
 </html>
