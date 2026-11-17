@@ -1,5 +1,5 @@
 {
-  "name": "Wandelkaart Hub",
+  "name": "Wandelkaart",
   "short_name": "Wandelkaart",
   "start_url": "./index.html",
   "display": "standalone",
@@ -8,7 +8,7 @@
   "icons": [
     {
       "src": "hub-icon.png",
-      "sizes": "512x512",
+      "sizes": "192x192",
       "type": "image/png",
       "purpose": "any"
     },
@@ -16,7 +16,7 @@
       "src": "hub-icon.png",
       "sizes": "512x512",
       "type": "image/png",
-      "purpose": "maskable"
+      "purpose": "any"
     }
   ]
 }
