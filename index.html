@@ -5,9 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Wandelkaart - Centrale Hub</title>
 
-    <link rel="manifest" href="manifest-hub.json?v=hub1" />
-    <link rel="icon" type="image/png" sizes="192x192" href="hub-icon.jpeg" />
-    <link rel="apple-touch-icon" href="hub-icon.jpeg" />
+  <link rel="manifest" href="manifest-hub.json?v=hub1" />
+  <link rel="icon" type="image/png" sizes="192x192" href="hub-icon.jpeg" />
+  <link rel="apple-touch-icon" href="hub-icon.jpeg" />
   
   <style>
     :root {
@@ -16,6 +16,7 @@
       --text-color: #2c2c2c;
       --accent-color: #7c3aed;
       --accent-hover: #6d28d9;
+      --terra-color: #c2410c;
       --border-color: #e5e2db;
     }
     body {
@@ -69,11 +70,17 @@
       transform: translateY(-2px);
       border-color: var(--accent-color);
     }
+    .card.trekvogelpad:hover {
+      border-color: var(--terra-color);
+    }
     .card-title {
       font-size: 1.15rem;
       font-weight: 600;
       margin: 0 0 4px 0;
       color: var(--accent-color);
+    }
+    .card.trekvogelpad .card-title {
+      color: var(--terra-color);
     }
     .card-desc {
       font-size: 0.85rem;
@@ -100,6 +107,15 @@
         <div>
           <h2 class="card-title">Hanzestedenpad</h2>
           <p class="card-desc">Bekijk de etappes en interactieve kaart van het Hanzestedenpad.</p>
+        </div>
+        <div class="arrow">&rarr;</div>
+      </a>
+
+      <!-- Trekvogelpad Kaart -->
+      <a href="./trekvogelpad/" class="card trekvogelpad">
+        <div>
+          <h2 class="card-title">Trekvogelpad</h2>
+          <p class="card-desc">Laatste etappes (Buurserzand – Enschede) incl. rustpunten en POI's.</p>
         </div>
         <div class="arrow">&rarr;</div>
       </a>
