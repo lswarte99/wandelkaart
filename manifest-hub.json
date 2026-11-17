@@ -3,9 +3,15 @@
   "short_name": "Wandelkaart",
   "start_url": "./index.html",
   "display": "standalone",
-  "background_color": "#f2efe9",
+  "background_color": "#2d4c39",
   "theme_color": "#2d4c39",
   "icons": [
+    {
+      "src": "hub-icon.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
     {
       "src": "hub-icon.png",
       "sizes": "512x512",
