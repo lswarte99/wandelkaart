@@ -1,20 +1,22 @@
 {
-  "name": "Hanzestedenpad",
-  "short_name": "Hanzestedenpad",
+  "name": "Wandelhub",
+  "short_name": "Wandelhub",
   "start_url": "./index.html",
   "display": "standalone",
-  "background_color": "#f2efe9",
-  "theme_color": "#7c3aed",
+  "background_color": "#f2efe9", // Kleur van je hub-pagina
+  "theme_color": "#66cc66", // Bijvoorbeeld een groen tintje
   "icons": [
     {
-      "src": "icon.png",
+      "src": "./hub-icon.png",
       "sizes": "192x192",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any"
     },
     {
-      "src": "icon.png",
+      "src": "./hub-icon.png",
       "sizes": "512x512",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any"
     }
   ]
 }
