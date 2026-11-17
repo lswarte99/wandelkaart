@@ -1,6 +1,6 @@
 {
-  "name": "Wandelkaart",
-  "short_name": "Wandelkaart",
+  "name": "Wandelingen",
+  "short_name": "Wandelingen",
   "start_url": "./index.html",
   "display": "standalone",
   "background_color": "#2d4c39",
