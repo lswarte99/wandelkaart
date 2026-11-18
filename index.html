@@ -2,121 +2,143 @@
 <html lang="nl">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Een kamer voor jezelf — Amsterdam</title>
-  <meta name="theme-color" content="#b91c1c">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Wandelkaart - Centrale Hub</title>
+
+  <link rel="manifest" href="manifest-hub.json?v=hub3" />
+  <link rel="icon" type="image/png" sizes="512x512" href="hub-icon.png" />
+  <link rel="apple-touch-icon" href="hub-icon.png" />
+  
   <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    html, body { height: 100%; width: 100%; overflow: hidden; font-family: system-ui, -apple-system, sans-serif; background: #f8fafc; }
-    
-    iframe {
-      width: 100%;
-      height: 100%;
-      border: none;
-      display: block;
+    :root {
+      --bg-color: #f2efe9;
+      --card-bg: #ffffff;
+      --text-color: #2c2c2c;
+      --accent-color: #7c3aed;
+      --accent-hover: #6d28d9;
+      --terra-color: #c2410c;
+      --brick-color: #b91c1c;
+      --border-color: #e5e2db;
     }
-
-    .gps-btn {
-      position: fixed;
-      bottom: 46px;
-      right: 14px;
-      z-index: 1000;
-      width: 52px;
-      height: 52px;
-      background: #ffffff;
-      color: #2c2c2c;
-      border: none;
-      border-radius: 50%;
-      box-shadow: 0 3px 10px rgba(0, 0, 0, 0.25);
-      cursor: pointer;
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background-color: var(--bg-color);
+      color: var(--text-color);
+      margin: 0;
+      padding: 20px;
       display: flex;
+      flex-direction: column;
       align-items: center;
-      justify-content: center;
-      padding: 0;
-      transition: transform 0.1s ease, color 0.2s ease;
+      min-height: 100vh;
     }
-
-    .gps-btn:active {
-      transform: scale(0.95);
+    .container {
+      width: 100%;
+      max-width: 600px;
+      margin-top: 20px;
     }
-
-    .gps-btn.active {
-      color: #b91c1c;
+    header {
+      text-align: center;
+      margin-bottom: 30px;
     }
-
-    .status-toast {
-      position: fixed;
-      bottom: 24px;
-      left: 50%;
-      transform: translateX(-50%);
-      background: rgba(31, 41, 55, 0.92);
-      color: #fff;
-      padding: 8px 16px;
-      border-radius: 999px;
-      font-size: 13px;
-      z-index: 1000;
-      opacity: 0;
-      pointer-events: none;
-      transition: opacity 0.25s ease;
+    h1 {
+      font-size: 1.8rem;
+      margin-bottom: 8px;
     }
-    .status-toast.show { opacity: 1; }
+    p.subtitle {
+      color: #666;
+      font-size: 0.95rem;
+      margin: 0;
+    }
+    .card-list {
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+    }
+    .card {
+      background-color: var(--card-bg);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 20px;
+      text-decoration: none;
+      color: inherit;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+      transition: transform 0.15s ease, border-color 0.15s ease;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .card:hover {
+      transform: translateY(-2px);
+      border-color: var(--accent-color);
+    }
+    .card.trekvogelpad:hover {
+      border-color: var(--terra-color);
+    }
+    .card.kamer:hover {
+      border-color: var(--brick-color);
+    }
+    .card-title {
+      font-size: 1.15rem;
+      font-weight: 600;
+      margin: 0 0 4px 0;
+      color: var(--accent-color);
+    }
+    .card.trekvogelpad .card-title {
+      color: var(--terra-color);
+    }
+    .card.kamer .card-title {
+      color: var(--brick-color);
+    }
+    .card-desc {
+      font-size: 0.85rem;
+      color: #666;
+      margin: 0;
+    }
+    .arrow {
+      font-size: 1.2rem;
+      color: #999;
+    }
   </style>
 </head>
 <body>
 
-  <button id="gpsBtn" class="gps-btn" type="button" aria-label="Centreer op mijn locatie" title="Centreer op mijn locatie">
-    <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-      <circle cx="12" cy="12" r="7"></circle>
-      <circle cx="12" cy="12" r="2.5"></circle>
-      <line x1="12" y1="2" x2="12" y2="5"></line>
-      <line x1="12" y1="19" x2="12" y2="22"></line>
-      <line x1="2" y1="12" x2="5" y2="12"></line>
-      <line x1="19" y1="12" x2="22" y2="12"></line>
-    </svg>
-  </button>
+  <div class="container">
+    <header>
+      <h1>Wandelprojecten</h1>
+      <p class="subtitle">Overzicht van persoonlijke wandelroutes</p>
+    </header>
 
-  <div id="toast" class="status-toast">Locatie zoeken...</div>
+    <div class="card-list">
+      <!-- Hanzestedenpad Kaart -->
+      <a href="./hanzesteden/" class="card">
+        <div>
+          <h2 class="card-title">Hanzestedenpad</h2>
+          <p class="card-desc">Bekijk de etappes en interactieve kaart van het Hanzestedenpad.</p>
+        </div>
+        <div class="arrow">&rarr;</div>
+      </a>
 
-  <iframe 
-    id="umapFrame"
-    src="https://umap.openstreetmap.fr/nl/map/een-kamer-voor-jezelf_1481527?scaleControl=false&miniMap=false&scrollWheelZoom=true&zoomControl=true&editMode=disabled&moreControl=false&searchControl=false&tilelayersControl=false&embedControl=false&datalayersControl=true&onLoadPanel=none&captionBar=false&captionMenus=false#13/52.363284/4.891148"
-    allowfullscreen
-    allow="geolocation">
-  </iframe>
+      <!-- Trekvogelpad Kaart -->
+      <a href="./trekvogelpad/" class="card trekvogelpad">
+        <div>
+          <h2 class="card-title">Trekvogelpad</h2>
+          <p class="card-desc">Laatste etappes (Koekkoeksbrug – Enschede) incl. rustpunten en POI's.</p>
+        </div>
+        <div class="arrow">&rarr;</div>
+      </a>
 
-  <script>
-    const gpsBtn = document.getElementById('gpsBtn');
-    const umapFrame = document.getElementById('umapFrame');
-    const toast = document.getElementById('toast');
-    const baseUrl = "https://umap.openstreetmap.fr/nl/map/een-kamer-voor-jezelf_1481527?scaleControl=false&miniMap=false&scrollWheelZoom=true&zoomControl=true&editMode=disabled&moreControl=false&searchControl=false&tilelayersControl=false&embedControl=false&datalayersControl=true&onLoadPanel=none&captionBar=false&captionMenus=false";
+      <!-- Een kamer voor jezelf (Amsterdam) -->
+      <a href="./kamer/" class="card kamer">
+        <div>
+          <h2 class="card-title">Een kamer voor jezelf (Amsterdam)</h2>
+          <p class="card-desc">Stadswandeling langs hofjes en vrouwenflats (Rokin – Amstel, 7 stops).</p>
+        </div>
+        <div class="arrow">&rarr;</div>
+      </a>
 
-    function showToast(msg) {
-      toast.textContent = msg;
-      toast.classList.add('show');
-      setTimeout(() => toast.classList.remove('show'), 3000);
-    }
-
-    gpsBtn.addEventListener('click', () => {
-      if (!('geolocation' in navigator)) {
-        showToast('GPS wordt niet ondersteund op dit apparaat.');
-        return;
-      }
-      showToast('Huidige positie ophalen...');
-      navigator.geolocation.getCurrentPosition(
-        (pos) => {
-          const lat = pos.coords.latitude.toFixed(6);
-          const lon = pos.coords.longitude.toFixed(6);
-          umapFrame.src = `${baseUrl}#17/${lat}/${lon}`;
-          gpsBtn.classList.add('active');
-          showToast('Kaart gecentreerd op je locatie');
-        },
-        () => {
-          showToast('Kan locatie niet bepalen. Controleer GPS-toestemming.');
-        },
-        { enableHighAccuracy: true, timeout: 10000 }
-      );
-    });
-  </script>
+      <!-- Toekomstige kaarten kun je hier makkelijk onderzetten -->
+    </div>
+  </div>
 
 </body>
 </html>
