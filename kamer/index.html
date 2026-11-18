@@ -1,1 +1,126 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Een kamer voor jezelf — Amsterdam</title>
+  <meta name="theme-color" content="#b91c1c">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { height: 100%; width: 100%; overflow: hidden; font-family: system-ui, -apple-system, sans-serif; background: #f8fafc; }
+    
+    iframe {
+      width: 100%;
+      height: 100%;
+      border: none;
+      display: block;
+    }
 
+    .top-bar {
+      position: fixed;
+      top: 12px;
+      left: 54px;
+      z-index: 1000;
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .btn {
+      background: #ffffff;
+      color: #1f2937;
+      border: 1px solid rgba(0,0,0,0.15);
+      border-radius: 999px;
+      padding: 8px 14px;
+      font-size: 14px;
+      font-weight: 600;
+      text-decoration: none;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .btn-gps {
+      background: #b91c1c;
+      color: #ffffff;
+      border-color: #991b1b;
+    }
+
+    .btn-gps.active {
+      background: #15803d;
+      border-color: #166534;
+    }
+
+    .status-toast {
+      position: fixed;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(31, 41, 55, 0.92);
+      color: #fff;
+      padding: 8px 16px;
+      border-radius: 999px;
+      font-size: 13px;
+      z-index: 1000;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.25s ease;
+    }
+    .status-toast.show { opacity: 1; }
+  </style>
+</head>
+<body>
+
+  <div class="top-bar">
+    <a href="../index.html" class="btn" aria-label="Terug naar overzicht">← Hub</a>
+    <button id="gpsBtn" class="btn btn-gps" type="button">📍 Mijn locatie</button>
+  </div>
+
+  <div id="toast" class="status-toast">Locatie zoeken...</div>
+
+  <iframe 
+    id="umapFrame"
+    src="https://umap.openstreetmap.fr/nl/map/een-kamer-voor-jezelf_1481527?scaleControl=false&miniMap=false&scrollWheelZoom=true&zoomControl=true&editMode=disabled&moreControl=false&searchControl=false&tilelayersControl=false&embedControl=false&datalayersControl=true&onLoadPanel=none&captionBar=false&captionMenus=false"
+    allowfullscreen
+    allow="geolocation">
+  </iframe>
+
+  <script>
+    const gpsBtn = document.getElementById('gpsBtn');
+    const umapFrame = document.getElementById('umapFrame');
+    const toast = document.getElementById('toast');
+    const baseUrl = "https://umap.openstreetmap.fr/nl/map/een-kamer-voor-jezelf_1481527?scaleControl=false&miniMap=false&scrollWheelZoom=true&zoomControl=true&editMode=disabled&moreControl=false&searchControl=false&tilelayersControl=false&embedControl=false&datalayersControl=true&onLoadPanel=none&captionBar=false&captionMenus=false";
+
+    function showToast(msg) {
+      toast.textContent = msg;
+      toast.classList.add('show');
+      setTimeout(() => toast.classList.remove('show'), 3000);
+    }
+
+    gpsBtn.addEventListener('click', () => {
+      if (!('geolocation' in navigator)) {
+        showToast('GPS wordt niet ondersteund op dit apparaat.');
+        return;
+      }
+      showToast('Huidige positie ophalen...');
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          const lat = pos.coords.latitude.toFixed(6);
+          const lon = pos.coords.longitude.toFixed(6);
+          umapFrame.src = `${baseUrl}#17/${lat}/${lon}`;
+          gpsBtn.classList.add('active');
+          gpsBtn.textContent = '📍 Gecentreerd';
+          showToast('Kaart gecentreerd op je locatie');
+        },
+        () => {
+          showToast('Kan locatie niet bepalen. Controleer GPS-toestemming.');
+        },
+        { enableHighAccuracy: true, timeout: 10000 }
+      );
+    });
+  </script>
+
+</body>
+</html>
