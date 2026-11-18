@@ -17,6 +17,7 @@
       --accent-color: #7c3aed;
       --accent-hover: #6d28d9;
       --terra-color: #c2410c;
+      --brick-color: #b91c1c;
       --border-color: #e5e2db;
     }
     body {
@@ -73,6 +74,9 @@
     .card.trekvogelpad:hover {
       border-color: var(--terra-color);
     }
+    .card.kamer:hover {
+      border-color: var(--brick-color);
+    }
     .card-title {
       font-size: 1.15rem;
       font-weight: 600;
@@ -81,6 +85,9 @@
     }
     .card.trekvogelpad .card-title {
       color: var(--terra-color);
+    }
+    .card.kamer .card-title {
+      color: var(--brick-color);
     }
     .card-desc {
       font-size: 0.85rem;
@@ -116,6 +123,15 @@
         <div>
           <h2 class="card-title">Trekvogelpad</h2>
           <p class="card-desc">Laatste etappes (Koekkoeksbrug – Enschede) incl. rustpunten en POI's.</p>
+        </div>
+        <div class="arrow">&rarr;</div>
+      </a>
+
+      <!-- Een kamer voor jezelf (Amsterdam) -->
+      <a href="./kamer/" class="card kamer">
+        <div>
+          <h2 class="card-title">Een kamer voor jezelf (Amsterdam)</h2>
+          <p class="card-desc">Stadswandeling langs hofjes en vrouwenflats (Rokin – Amstel, 7 stops).</p>
         </div>
         <div class="arrow">&rarr;</div>
       </a>
