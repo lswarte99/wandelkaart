@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Camper Nav — e-NV200 & Cultuur</title>
+
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="theme-color" content="#0f172a" />
+
+  <!-- MapLibre GL JS (3D Vectorkaart Engine) -->
+  <link href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css" rel="stylesheet" />
+  <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
+
+  <style>
+    * {
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+    }
+    html, body {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background-color: #e5e7eb;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    }
+
+    #map {
+      width: 100%;
+      height: 100%;
+    }
+
+    /* Bovenbalk: Zoeken + Wandelhub knop */
+    .top-bar {
+      position: absolute;
+      top: 12px;
+      left: 12px;
+      right: 12px;
+      z-index: 1000;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      pointer-events: none;
+    }
+
+    .search-row {
+      display: flex;
+      gap: 8px;
+      pointer-events: auto;
+    }
+
+    .search-box {
+      flex: 1;
+      display: flex;
+      background: rgba(255, 255, 255, 0.96);
+      border-radius: 12px;
+      box-shadow: 0 3px 12px rgba(0, 0, 0, 0.16);
+      border: 1px solid rgba(0, 0, 0, 0.1);
+      overflow: hidden;
+    }
+
+    .search-box input {
+      flex: 1;
+      border: none;
+      padding: 11px 14px;
+      font-size: 15px;
+      outline: none;
+      background: transparent;
+      color: #1e293b;
+    }
+
+    .search-box button {
+      border: none;
+      background: #0f172a;
+      color: #ffffff;
+      padding: 0 16px;
+      font-weight: 600;
+      font-size: 14px;
+      cursor: pointer;
+    }
+
+    .hub-btn {
+      background: #ffffff;
+      color: #0f172a;
+      border: 1px solid rgba(0, 0, 0, 0.12);
+      border-radius: 12px;
+      padding: 0 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-decoration: none;
+      font-weight: 600;
+      font-size: 13px;
+      box-shadow: 0 3px 12px rgba(0, 0, 0, 0.16);
+      white-space: nowrap;
+    }
+
+    /* Zoekresultaten dropdown */
+    .search-results {
+      background: #ffffff;
+      border-radius: 12px;
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
+      max-height: 220px;
+      overflow-y: auto;
+      display: none;
+      pointer-events: auto;
+    }
+
+    .search-result-item {
+      padding: 11px 14px;
+      border-bottom: 1px solid #f1f5f9;
+      font-size: 14px;
+      color: #1e293b;
+      cursor: pointer;
+    }
+
+    .search-result-item:last-child {
+      border-bottom: none;
+    }
+
+    .search-result-item:active {
+      background: #f1f5f9;
+    }
+
+    /* Filter chips (CHAdeMO, AC, P+R, OV, Musea) */
+    .filter-strip {
+      display: flex;
+      gap: 6px;
+      overflow-x: auto;
+      padding-bottom: 4px;
+      pointer-events: auto;
+      scrollbar-width: none;
+    }
+    .filter-strip::-webkit-scrollbar {
+      display: none;
+    }
+
+    .chip {
+      background: rgba(255, 255, 255, 0.95);
+      border: 1.5px solid rgba(0, 0, 0, 0.12);
+      border-radius: 20px;
+      padding: 7px 13px;
+      font-size: 13px;
+      font-weight: 600;
+      color: #334155;
+      white-space: nowrap;
+      cursor: pointer;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12);
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      transition: all 0.15s ease;
+    }
+
+    .chip.active {
+      background: #0f172a;
+      color: #ffffff;
+      border-color: #0f172a;
+    }
+
+    .chip.chademo.active {
+      background: #0284c7;
+      border-color: #0284c7;
+    }
+
+    .chip.loading {
+      opacity: 0.65;
+    }
+
+    /* Rechter zijknoppen: 2D/3D + GPS Vizier */
+    .side-controls {
+      position: absolute;
+      right: 14px;
+      bottom: 110px;
+      z-index: 1000;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .ctrl-btn {
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      background: #ffffff;
+      border: 1.5px solid rgba(0, 0, 0, 0.15);
+      box-shadow: 0 3px 10px rgba(0, 0, 0, 0.22);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 13px;
+      color: #1e293b;
+      cursor: pointer;
+    }
+
+    .ctrl-btn.active {
+      background: #eff6ff;
+      border-color: #2563eb;
+      color: #2563eb;
+    }
+
+    /* Onderpaneel: Route & Navigatie info */
+    .nav-panel {
+      position: absolute;
+      bottom: 14px;
+      left: 12px;
+      right: 12px;
+      z-index: 1001;
+      background: #ffffff;
+      border-radius: 16px;
+      padding: 14px 16px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.22);
+      display: none;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .nav-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 10px;
+    }
+
+    .nav-title {
+      font-weight: 700;
+      font-size: 16px;
+      color: #0f172a;
+      margin: 0;
+    }
+
+    .nav-meta {
+      font-size: 13px;
+      color: #475569;
+      margin-top: 2px;
+    }
+
+    .close-nav {
+      background: #f1f5f9;
+      border: none;
+      border-radius: 50%;
+      width: 30px;
+      height: 30px;
+      font-size: 16px;
+      font-weight: bold;
+      color: #475569;
+      cursor: pointer;
+    }
+
+    .nav-actions {
+      display: flex;
+      gap: 8px;
+    }
+
+    .mode-btn {
+      flex: 1;
+      padding: 9px;
+      border-radius: 10px;
+      border: 1.5px solid #cbd5e1;
+      background: #ffffff;
+      font-weight: 600;
+      font-size: 13px;
+      color: #334155;
