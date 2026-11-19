@@ -18,6 +18,165 @@
       --accent-hover: #6d28d9;
       --terra-color: #c2410c;
       --brick-color: #b91c1c;
+      --signac-color: #1d4ed8;
+      --border-color: #e5e2db;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background-color: var(--bg-color);
+      color: var(--text-color);
+      margin: 0;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+    }
+    .container {
+      width: 100%;
+      max-width: 600px;
+      margin-top: 20px;
+    }
+    header {
+      text-align: center;
+      margin-bottom: 30px;
+    }
+    h1 {
+      font-size: 1.8rem;
+      margin-bottom: 8px;
+    }
+    p.subtitle {
+      color: #666;
+      font-size: 0.95rem;
+      margin: 0;
+    }
+    .card-list {
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+    }
+    .card {
+      background-color: var(--card-bg);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 20px;
+      text-decoration: none;
+      color: inherit;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+      transition: transform 0.15s ease, border-color 0.15s ease;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .card:hover {
+      transform: translateY(-2px);
+      border-color: var(--accent-color);
+    }
+    .card.trekvogelpad:hover {
+      border-color: var(--terra-color);
+    }
+    .card.kamer:hover {
+      border-color: var(--brick-color);
+    }
+    .card.signac:hover {
+      border-color: var(--signac-color);
+    }
+    .card-title {
+      font-size: 1.15rem;
+      font-weight: 600;
+      margin: 0 0 4px 0;
+      color: var(--accent-color);
+    }
+    .card.trekvogelpad .card-title {
+      color: var(--terra-color);
+    }
+    .card.kamer .card-title {
+      color: var(--brick-color);
+    }
+    .card.signac .card-title {
+      color: var(--signac-color);
+    }
+    .card-desc {
+      font-size: 0.85rem;
+      color: #666;
+      margin: 0;
+    }
+    .arrow {
+      font-size: 1.2rem;
+      color: #999;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <header>
+      <h1>Wandelprojecten</h1>
+      <p class="subtitle">Overzicht van persoonlijke wandelroutes</p>
+    </header>
+
+    <div class="card-list">
+      <!-- Hanzestedenpad Kaart -->
+      <a href="./hanzesteden/" class="card">
+        <div>
+          <h2 class="card-title">Hanzestedenpad</h2>
+          <p class="card-desc">Bekijk de etappes en interactieve kaart van het Hanzestedenpad.</p>
+        </div>
+        <div class="arrow">&rarr;</div>
+      </a>
+
+      <!-- Trekvogelpad Kaart -->
+      <a href="./trekvogelpad/" class="card trekvogelpad">
+        <div>
+          <h2 class="card-title">Trekvogelpad</h2>
+          <p class="card-desc">Laatste etappes (Koekkoeksbrug – Enschede) incl. rustpunten en POI's.</p>
+        </div>
+        <div class="arrow">&rarr;</div>
+      </a>
+
+      <!-- Een kamer voor jezelf (Amsterdam) -->
+      <a href="./kamer/" class="card kamer">
+        <div>
+          <h2 class="card-title">Een kamer voor jezelf (Amsterdam)</h2>
+          <p class="card-desc">Stadswandeling langs hofjes en vrouwenflats (Rokin – Amstel, 7 stops).</p>
+        </div>
+        <div class="arrow">&rarr;</div>
+      </a>
+
+      <!-- Wandel mee met Paul Signac (Rotterdam) -->
+      <a href="./signac/" class="card signac">
+        <div>
+          <h2 class="card-title">Wandel mee met Paul Signac (Rotterdam)</h2>
+          <p class="card-desc">Stadswandeling langs havens en kunst (Tramhuis – Willemsbrug, 5 km).</p>
+        </div>
+        <div class="arrow">&rarr;</div>
+      </a>
+
+      <!-- Toekomstige kaarten kun je hier makkelijk onderzetten -->
+    </div>
+  </div>
+
+</body>
+</html><!DOCTYPE html>
+<html lang="nl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Wandelkaart - Centrale Hub</title>
+
+  <link rel="manifest" href="manifest-hub.json?v=hub3" />
+  <link rel="icon" type="image/png" sizes="512x512" href="hub-icon.png" />
+  <link rel="apple-touch-icon" href="hub-icon.png" />
+  
+  <style>
+    :root {
+      --bg-color: #f2efe9;
+      --card-bg: #ffffff;
+      --text-color: #2c2c2c;
+      --accent-color: #7c3aed;
+      --accent-hover: #6d28d9;
+      --terra-color: #c2410c;
+      --brick-color: #b91c1c;
       --border-color: #e5e2db;
     }
     body {
