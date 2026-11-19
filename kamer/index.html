@@ -1,227 +1,208 @@
 <!DOCTYPE html>
 <html lang="nl">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <title>Een kamer voor jezelf — Amsterdam</title>
-  <meta name="theme-color" content="#b91c1c">
 
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="theme-color" content="#b91c1c" />
 
   <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    html, body, #map { height: 100%; width: 100%; overflow: hidden; font-family: system-ui, -apple-system, sans-serif; }
-
-    .gps-btn {
-      position: fixed;
-      bottom: 46px;
-      right: 14px;
-      z-index: 1000;
-      width: 52px;
-      height: 52px;
-      background: #ffffff;
-      color: #2c2c2c;
-      border: none;
-      border-radius: 50%;
-      box-shadow: 0 3px 10px rgba(0, 0, 0, 0.25);
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
+    * {
+      box-sizing: border-box;
+    }
+    html, body {
+      margin: 0;
       padding: 0;
-      transition: transform 0.1s ease, color 0.2s ease;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background-color: #f2efe9;
+      font-family: sans-serif;
     }
-    .gps-btn:active { transform: scale(0.95); }
-    .gps-btn.active { color: #2563eb; }
 
-    .poi-marker {
-      width: 28px;
-      height: 28px;
-      background: #ffffff;
-      border: 2.5px solid #b91c1c;
+    #umap-frame {
+      width: 100%;
+      height: 100%;
+      border: none;
+      display: block;
+    }
+
+    /* Vaste GPS-stip midden op het scherm */
+    #user-marker {
+      display: none;
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 22px;
+      height: 22px;
+      pointer-events: none;
+      z-index: 9998;
+    }
+
+    #user-marker .dot {
+      width: 14px;
+      height: 14px;
+      background-color: #2563eb;
+      border: 2.5px solid #ffffff;
       border-radius: 50%;
-      color: #b91c1c;
-      font-weight: 700;
-      font-family: Georgia, serif;
-      font-style: italic;
-      font-size: 15px;
+      position: absolute;
+      top: 4px;
+      left: 4px;
+      box-shadow: 0 0 6px rgba(0, 0, 0, 0.4);
+    }
+
+    #user-marker .ring {
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      background-color: rgba(37, 99, 235, 0.25);
+      animation: pulse-ring 2s infinite ease-out;
+    }
+
+    @keyframes pulse-ring {
+      0% { transform: scale(0.7); opacity: 0.8; }
+      100% { transform: scale(1.6); opacity: 0; }
+    }
+
+    /* Minimalistische vizier-knop */
+    .gps-btn {
+      position: absolute;
+      bottom: 24px;
+      right: 18px;
+      width: 48px;
+      height: 48px;
+      background-color: #ffffff;
+      border: 2px solid rgba(0, 0, 0, 0.15);
+      border-radius: 50%;
       display: flex;
       align-items: center;
       justify-content: center;
-      box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+      box-shadow: 0 3px 8px rgba(0, 0, 0, 0.25);
+      cursor: pointer;
+      z-index: 9999;
+      outline: none;
+      transition: background-color 0.2s, border-color 0.2s;
+      -webkit-tap-highlight-color: transparent;
     }
 
-    .leaflet-popup-content {
-      max-width: 280px;
-      max-height: 320px;
-      overflow-y: auto;
-      line-height: 1.45;
-      font-size: 14px;
-    }
-    .leaflet-popup-content h3 {
-      margin: 0 0 6px 0;
-      color: #b91c1c;
-      font-size: 16px;
-    }
-    .leaflet-popup-content p {
-      margin: 0 0 8px 0;
+    .gps-btn svg {
+      width: 24px;
+      height: 24px;
+      stroke: #444444;
+      stroke-width: 2;
+      fill: none;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      transition: stroke 0.2s;
     }
 
-    .status-toast {
-      position: fixed;
-      bottom: 24px;
-      left: 50%;
-      transform: translateX(-50%);
-      background: rgba(31, 41, 55, 0.92);
-      color: #fff;
-      padding: 8px 16px;
-      border-radius: 999px;
-      font-size: 13px;
-      z-index: 1000;
-      opacity: 0;
-      pointer-events: none;
-      transition: opacity 0.25s ease;
+    .gps-btn.active {
+      background-color: #fef2f2;
+      border-color: #b91c1c;
     }
-    .status-toast.show { opacity: 1; }
+
+    .gps-btn.active svg {
+      stroke: #b91c1c;
+    }
+
+    .gps-btn.searching svg {
+      opacity: 0.4;
+      animation: pulse 1.2s infinite ease-in-out;
+    }
+
+    @keyframes pulse {
+      0% { transform: scale(0.9); opacity: 0.3; }
+      50% { transform: scale(1.08); opacity: 0.8; }
+      100% { transform: scale(0.9); opacity: 0.3; }
+    }
   </style>
 </head>
 <body>
 
-  <div id="map"></div>
+  <!-- uMap iframe gecentreerd op Amsterdam -->
+  <iframe 
+    id="umap-frame" 
+    src="https://umap.openstreetmap.fr/nl/map/een-kamer-voor-jezelf_1481527?scaleControl=false&miniMap=false&scrollWheelZoom=true&locateControl=false&zoomControl=false&fullscreenControl=false&shareControl=false&moreControl=false&datalayersControl=false&locale=nl#13/52.363284/4.891148" 
+    allow="geolocation *; autoplay; encrypted-media">
+  </iframe>
 
-  <button id="gpsBtn" class="gps-btn" type="button" aria-label="Centreer op mijn locatie" title="Centreer op mijn locatie">
-    <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-      <circle cx="12" cy="12" r="7"></circle>
-      <circle cx="12" cy="12" r="2.5"></circle>
-      <line x1="12" y1="2" x2="12" y2="5"></line>
-      <line x1="12" y1="19" x2="12" y2="22"></line>
-      <line x1="2" y1="12" x2="5" y2="12"></line>
-      <line x1="19" y1="12" x2="22" y2="12"></line>
+  <!-- Visuele GPS-indicator (blauwe stip) -->
+  <div id="user-marker">
+    <div class="ring"></div>
+    <div class="dot"></div>
+  </div>
+
+  <!-- Symmetrisch 4-punts vizier -->
+  <button id="gpsBtn" class="gps-btn" title="Volg GPS-locatie" aria-label="Volg GPS-locatie">
+    <svg viewBox="0 0 24 24">
+      <circle cx="12" cy="12" r="7" />
+      <line x1="12" y1="1" x2="12" y2="5" />
+      <line x1="12" y1="19" x2="12" y2="23" />
+      <line x1="1" y1="12" x2="5" y2="12" />
+      <line x1="19" y1="12" x2="23" y2="12" />
+      <circle cx="12" cy="12" r="2" fill="#444444" stroke="none" />
     </svg>
   </button>
 
-  <div id="toast" class="status-toast">Locatie zoeken...</div>
-
   <script>
-    const map = L.map('map').setView([52.363284, 4.891148], 13);
+    const iframe = document.getElementById('umap-frame');
+    const btn = document.getElementById('gpsBtn');
+    const marker = document.getElementById('user-marker');
 
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      maxZoom: 19,
-      attribution: '&copy; OpenStreetMap-bijdragers'
-    }).addTo(map);
-
-    function formatDescription(text) {
-      if (!text) return '';
-      return text
-        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-        .replace(/\*(.*?)\*/g, '<em>$1</em>')
-        .split(/\n\s*\n/)
-        .map(p => `<p>${p.replace(/\n/g, '<br>')}</p>`)
-        .join('');
-    }
-
-    const poiIcon = L.divIcon({
-      className: '',
-      html: '<div class="poi-marker">i</div>',
-      iconSize: [28, 28],
-      iconAnchor: [14, 14],
-      popupAnchor: [0, -14]
-    });
-
-    // Laad alle lagen rechtstreeks vanuit jouw uMap-kaart
-    fetch('https://umap.openstreetmap.fr/nl/map/1481527/geojson/')
-      .then(res => res.json())
-      .then(data => {
-        const layers = data.layers || [data];
-        layers.forEach(layerData => {
-          L.geoJSON(layerData, {
-            style: () => ({
-              color: '#b91c1c',
-              weight: 5,
-              opacity: 0.85
-            }),
-            pointToLayer: (feature, latlng) => L.marker(latlng, { icon: poiIcon }),
-            onEachFeature: (feature, layer) => {
-              const props = feature.properties || {};
-              if (props.name || props.description) {
-                const title = props.name ? `<h3>${props.name}</h3>` : '';
-                const desc = formatDescription(props.description);
-                layer.bindPopup(title + desc);
-              }
-            }
-          }).addTo(map);
-        });
-      })
-      .catch(() => showToast('Kon kaartgegevens niet laden.'));
-
-    // Blauwe GPS-stip + live tracking
-    const gpsBtn = document.getElementById('gpsBtn');
-    const toast = document.getElementById('toast');
-    let userMarker = null;
-    let accuracyCircle = null;
+    const baseParams = "https://umap.openstreetmap.fr/nl/map/een-kamer-voor-jezelf_1481527?scaleControl=false&miniMap=false&scrollWheelZoom=true&locateControl=false&zoomControl=false&fullscreenControl=false&shareControl=false&moreControl=false&datalayersControl=false&locale=nl";
     let watchId = null;
-    let shouldCenter = false;
 
-    function showToast(msg) {
-      toast.textContent = msg;
-      toast.classList.add('show');
-      setTimeout(() => toast.classList.remove('show'), 3000);
+    function resetGpsState() {
+      if (watchId !== null) {
+        navigator.geolocation.clearWatch(watchId);
+        watchId = null;
+      }
+      btn.classList.remove('active', 'searching');
+      marker.style.display = 'none';
     }
 
-    function updatePosition(pos) {
-      const latlng = [pos.coords.latitude, pos.coords.longitude];
-      const radius = pos.coords.accuracy;
-
-      if (!userMarker) {
-        accuracyCircle = L.circle(latlng, {
-          radius: radius,
-          color: '#2563eb',
-          fillColor: '#3b82f6',
-          fillOpacity: 0.15,
-          weight: 1
-        }).addTo(map);
-
-        userMarker = L.circleMarker(latlng, {
-          radius: 8,
-          fillColor: '#2563eb',
-          color: '#ffffff',
-          weight: 2.5,
-          opacity: 1,
-          fillOpacity: 1
-        }).addTo(map);
+    // Vizier knop aansturing
+    btn.addEventListener('click', () => {
+      if (watchId !== null) {
+        resetGpsState();
       } else {
-        userMarker.setLatLng(latlng);
-        accuracyCircle.setLatLng(latlng).setRadius(radius);
-      }
+        btn.classList.add('searching');
 
-      if (shouldCenter) {
-        map.setView(latlng, Math.max(map.getZoom(), 16));
-        shouldCenter = false;
-      }
-    }
+        navigator.geolocation.getCurrentPosition(
+          (pos) => {
+            btn.classList.remove('searching');
+            btn.classList.add('active');
+            marker.style.display = 'block';
 
-    gpsBtn.addEventListener('click', () => {
-      if (!('geolocation' in navigator)) {
-        showToast('GPS wordt niet ondersteund op dit apparaat.');
-        return;
-      }
-      shouldCenter = true;
-      gpsBtn.classList.add('active');
-      showToast('Locatie bepalen...');
-
-      if (watchId === null) {
-        watchId = navigator.geolocation.watchPosition(
-          updatePosition,
-          () => showToast('Kan locatie niet bepalen. Controleer GPS-toestemming.'),
-          { enableHighAccuracy: true, maximumAge: 5000, timeout: 10000 }
+            const lat = pos.coords.latitude.toFixed(5);
+            const lng = pos.coords.longitude.toFixed(5);
+            iframe.src = `${baseParams}&_t=${Date.now()}#16/${lat}/${lng}`;
+          },
+          (err) => {
+            resetGpsState();
+            alert('Geen satelliet-GPS fix: ' + err.message);
+          },
+          {
+            enableHighAccuracy: true,
+            timeout: 10000,
+            maximumAge: 0
+          }
         );
-      } else if (userMarker) {
-        map.setView(userMarker.getLatLng(), Math.max(map.getZoom(), 16));
-        shouldCenter = false;
+
+        watchId = navigator.geolocation.watchPosition(
+          (pos) => {
+            btn.classList.add('active');
+            marker.style.display = 'block';
+          },
+          null,
+          { enableHighAccuracy: true }
+        );
       }
     });
   </script>
-
 </body>
 </html>
