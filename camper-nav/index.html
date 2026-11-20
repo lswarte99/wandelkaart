@@ -725,3 +725,540 @@
       const dLon = toRad(c2[0] - c1[0]);
       const a = Math.sin(dLat / 2) ** 2 +
                 Math.cos(toRad(c1[1])) * Math.cos(toRad(c2[1])) * Math.sin(dLon / 2) ** 2;
+      return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    }
+
+    // 5. GPS Tracking
+    const gpsBtn = document.getElementById('gpsBtn');
+
+    async function requestWakeLock() {
+      try {
+        if ('wakeLock' in navigator) {
+          wakeLock = await navigator.wakeLock.request('screen');
+        }
+      } catch (e) {}
+    }
+
+    function updateUserPosition(pos) {
+      const lng = pos.coords.longitude;
+      const lat = pos.coords.latitude;
+      const heading = pos.coords.heading;
+      userCoords = [lng, lat];
+
+      if (!userMarker) {
+        const el = document.createElement('div');
+        el.className = 'gps-puck';
+        userMarker = new maplibregl.Marker({ element: el, rotationAlignment: 'map' })
+          .setLngLat(userCoords)
+          .addTo(map);
+      } else {
+        userMarker.setLngLat(userCoords);
+      }
+
+      if (heading !== null && !isNaN(heading)) {
+        userMarker.setRotation(heading);
+      }
+
+      if (followGps || isNavigating) {
+        const camOptions = { center: userCoords, duration: 800 };
+        if (isNavigating) {
+          camOptions.zoom = 16.5;
+          camOptions.pitch = 60;
+          camOptions.padding = { top: 80, bottom: 200, left: 0, right: 0 };
+          if (heading !== null && !isNaN(heading)) {
+            camOptions.bearing = heading;
+          }
+        } else {
+          camOptions.padding = { top: 0, bottom: 0, left: 0, right: 0 };
+        }
+        map.easeTo(camOptions);
+      }
+
+      if (isNavigating && destCoords) {
+        checkUpcomingManeuver();
+        if (Date.now() - lastRecalcTime > 20000) {
+          calculateRoute(true);
+        }
+      }
+    }
+
+    function startTracking(centerNow = true) {
+      followGps = true;
+      gpsBtn.classList.add('gps-active');
+
+      if (watchId === null) {
+        watchId = navigator.geolocation.watchPosition(
+          (pos) => {
+            updateUserPosition(pos);
+            if (centerNow) {
+              map.flyTo({ center: [pos.coords.longitude, pos.coords.latitude], zoom: 15 });
+              centerNow = false;
+            }
+          },
+          () => {},
+          { enableHighAccuracy: true, maximumAge: 1000, timeout: 10000 }
+        );
+      } else if (userCoords && centerNow) {
+        map.flyTo({ center: userCoords, zoom: 15 });
+      }
+    }
+
+    gpsBtn.addEventListener('click', () => {
+      if (followGps && !isNavigating) {
+        followGps = false;
+        gpsBtn.classList.remove('gps-active');
+      } else {
+        startTracking(true);
+      }
+    });
+
+    map.on('dragstart', () => {
+      if (!isNavigating) {
+        followGps = false;
+        gpsBtn.classList.remove('gps-active');
+      }
+    });
+
+    if ('geolocation' in navigator) {
+      navigator.geolocation.getCurrentPosition((pos) => {
+        updateUserPosition(pos);
+        updateAutoTheme();
+        map.jumpTo({ center: [pos.coords.longitude, pos.coords.latitude], zoom: 13 });
+      }, () => {}, { enableHighAccuracy: true });
+    }
+
+    // 6. Automatisch laadpalen op de kaart (met strakke monochrome SVG-stekker/bliksem)
+    let chargerMarkers = [];
+    let lastChargerFetchCenter = null;
+
+    async function fetchChargersSilently() {
+      if (map.getZoom() < 11.5) return;
+
+      const center = map.getCenter();
+      if (lastChargerFetchCenter && distanceMeters([center.lng, center.lat], lastChargerFetchCenter) < 4000) {
+        return;
+      }
+      lastChargerFetchCenter = [center.lng, center.lat];
+
+      const south = (center.lat - 0.09).toFixed(4);
+      const west = (center.lng - 0.14).toFixed(4);
+      const north = (center.lat + 0.09).toFixed(4);
+      const east = (center.lng + 0.14).toFixed(4);
+      const bbox = `${south},${west},${north},${east}`;
+
+      const query = `[out:json][timeout:12];(node["amenity"="charging_station"](${bbox});way["amenity"="charging_station"](${bbox}););out center 100;`;
+
+      try {
+        const res = await fetch('https://overpass-api.de/api/interpreter', {
+          method: 'POST',
+          body: 'data=' + encodeURIComponent(query)
+        });
+        if (!res.ok) return;
+        const data = await res.json();
+
+        chargerMarkers.forEach(m => m.remove());
+        chargerMarkers = [];
+
+        data.elements.forEach(el => {
+          const lat = el.lat || (el.center && el.center.lat);
+          const lon = el.lon || (el.center && el.center.lon);
+          if (!lat || !lon) return;
+
+          const tags = el.tags || {};
+          const hasChademo = Boolean(tags['socket:chademo']);
+          const name = tags.name || tags.operator || (hasChademo ? 'CHAdeMO Snellader' : 'Laadpaal');
+
+          const pin = document.createElement('div');
+          pin.className = hasChademo ? 'charger-pin chademo' : 'charger-pin';
+          pin.innerHTML = hasChademo
+            ? `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#38bdf8" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>`
+            : `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#4ade80" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22v-5"/><path d="M9 8V2"/><path d="M15 8V2"/><path d="M18 8v5a4 4 0 0 1-4 4h-4a4 4 0 0 1-4-4V8Z"/></svg>`;
+
+          const safeName = name.replace(/'/g, "\\'");
+          const popupHtml = `
+            <strong>${name}</strong><br>
+            <small style="color:#a1a1aa">${hasChademo ? 'CHAdeMO snellader' : 'Reguliere laadpaal'}</small>
+            <button class="popup-route-btn" onclick="selectDestination(${lon}, ${lat}, '${safeName}')">
+              Route hierheen
+            </button>
+          `;
+
+          const popup = new maplibregl.Popup({ offset: 14 }).setHTML(popupHtml);
+          const marker = new maplibregl.Marker({ element: pin })
+            .setLngLat([lon, lat])
+            .setPopup(popup)
+            .addTo(map);
+
+          chargerMarkers.push(marker);
+        });
+      } catch (e) {}
+    }
+
+    map.on('moveend', fetchChargersSilently);
+
+    // 7. Favorieten geïntegreerd in het zoekveld (Japandi stijl)
+    const favList = document.getElementById('favList');
+    const saveFavBtn = document.getElementById('saveFavBtn');
+    const heartIcon = document.getElementById('heartIcon');
+    let favorites = [];
+
+    async function loadFavorites() {
+      let fileFavs = [];
+      try {
+        const res = await fetch('favorieten.json?v=' + Date.now());
+        if (res.ok) fileFavs = await res.json();
+      } catch (e) {}
+
+      let localFavs = [];
+      try {
+        localFavs = JSON.parse(localStorage.getItem('camper_nav_favs') || '[]');
+      } catch (e) {}
+
+      favorites = [
+        ...fileFavs.map(f => ({ ...f, fromFile: true })),
+        ...localFavs.map(f => ({ ...f, fromFile: false }))
+      ];
+      renderFavorites();
+    }
+
+    function renderFavorites() {
+      favList.innerHTML = '';
+      if (!favorites.length) return;
+
+      favorites.forEach((fav) => {
+        const div = document.createElement('div');
+        div.className = 'dropdown-item';
+
+        const left = document.createElement('div');
+        left.className = 'fav-row-left';
+        left.innerHTML = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg><span>${fav.naam}</span>`;
+        left.addEventListener('click', () => {
+          favList.style.display = 'none';
+          selectDestination(fav.lon, fav.lat, fav.naam);
+        });
+        div.appendChild(left);
+
+        if (!fav.fromFile) {
+          const del = document.createElement('button');
+          del.className = 'del-fav-btn';
+          del.textContent = '✕';
+          del.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const localFavs = JSON.parse(localStorage.getItem('camper_nav_favs') || '[]');
+            const updated = localFavs.filter(lf => lf.naam !== fav.naam);
+            localStorage.setItem('camper_nav_favs', JSON.stringify(updated));
+            loadFavorites();
+          });
+          div.appendChild(del);
+        }
+
+        favList.appendChild(div);
+      });
+    }
+
+    saveFavBtn.addEventListener('click', () => {
+      if (!destCoords) return;
+      const defaultName = destName || 'Favoriete plek';
+      const customName = prompt('Naam voor deze favoriet:', defaultName);
+      if (!customName) return;
+
+      const localFavs = JSON.parse(localStorage.getItem('camper_nav_favs') || '[]');
+      localFavs.push({ naam: customName.trim(), lat: destCoords[1], lon: destCoords[0] });
+      localStorage.setItem('camper_nav_favs', JSON.stringify(localFavs));
+      heartIcon.setAttribute('fill', 'currentColor');
+      loadFavorites();
+    });
+
+    // 8. Zoekbalk (toont favorieten bij lege tik, zoekresultaten bij typen)
+    const searchInput = document.getElementById('searchInput');
+    const searchBtn = document.getElementById('searchBtn');
+    const searchResults = document.getElementById('searchResults');
+
+    searchInput.addEventListener('focus', () => {
+      if (!searchInput.value.trim() && favorites.length) {
+        searchResults.style.display = 'none';
+        favList.style.display = 'block';
+      }
+    });
+
+    searchInput.addEventListener('input', () => {
+      if (!searchInput.value.trim()) {
+        searchResults.style.display = 'none';
+        if (favorites.length) favList.style.display = 'block';
+      } else {
+        favList.style.display = 'none';
+      }
+    });
+
+    map.on('click', () => {
+      favList.style.display = 'none';
+      searchResults.style.display = 'none';
+      searchInput.blur();
+    });
+
+    async function performSearch() {
+      const q = searchInput.value.trim();
+      if (!q) {
+        if (favorites.length) favList.style.display = 'block';
+        return;
+      }
+      favList.style.display = 'none';
+      searchResults.style.display = 'block';
+      searchResults.innerHTML = '<div class="dropdown-item">Zoeken...</div>';
+
+      try {
+        const url = `https://nominatim.openstreetmap.org/search?format=json&limit=5&countrycodes=nl,be,de&q=${encodeURIComponent(q)}`;
+        const res = await fetch(url);
+        const items = await res.json();
+
+        if (!items.length) {
+          searchResults.innerHTML = '<div class="dropdown-item">Niets gevonden</div>';
+          return;
+        }
+
+        searchResults.innerHTML = '';
+        items.forEach(item => {
+          const div = document.createElement('div');
+          div.className = 'dropdown-item';
+          div.textContent = item.display_name;
+          div.addEventListener('click', () => {
+            searchResults.style.display = 'none';
+            searchInput.blur();
+            const shortName = item.display_name.split(',').slice(0, 2).join(', ');
+            selectDestination(parseFloat(item.lon), parseFloat(item.lat), shortName);
+          });
+          searchResults.appendChild(div);
+        });
+      } catch (e) {
+        searchResults.innerHTML = '<div class="dropdown-item">Zoekfout</div>';
+      }
+    }
+
+    searchBtn.addEventListener('click', performSearch);
+    searchInput.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') performSearch();
+    });
+
+    // 9. Routeberekening (altijd Camper / auto)
+    const planPanel = document.getElementById('planPanel');
+    const planEta = document.getElementById('planEta');
+    const planSub = document.getElementById('planSub');
+    const driveEtaTime = document.getElementById('driveEtaTime');
+    const driveEtaSub = document.getElementById('driveEtaSub');
+
+    function formatArrival(durationSeconds) {
+      const arrival = new Date(Date.now() + durationSeconds * 1000);
+      const hh = String(arrival.getHours()).padStart(2, '0');
+      const mm = String(arrival.getMinutes()).padStart(2, '0');
+      const mins = Math.max(1, Math.round(durationSeconds / 60));
+      return { clock: `${hh}:${mm}`, mins };
+    }
+
+    window.selectDestination = function(lng, lat, label = '') {
+      document.querySelectorAll('.maplibregl-popup').forEach(p => p.remove());
+      favList.style.display = 'none';
+      searchResults.style.display = 'none';
+      destCoords = [lng, lat];
+      destName = label;
+      heartIcon.setAttribute('fill', 'none');
+      planPanel.style.display = 'flex';
+      planEta.textContent = '--:--';
+      planSub.textContent = 'Aankomst berekenen...';
+
+      if (destMarker) destMarker.remove();
+      destMarker = new maplibregl.Marker({ color: '#dc2626' })
+        .setLngLat(destCoords)
+        .addTo(map);
+
+      calculateRoute(false);
+    };
+
+    function drawRouteOnMap(geojson) {
+      if (map.getSource('route')) {
+        map.getSource('route').setData(geojson);
+      } else {
+        map.addSource('route', { type: 'geojson', data: geojson });
+        map.addLayer({
+          id: 'route-line',
+          type: 'line',
+          source: 'route',
+          layout: { 'line-join': 'round', 'line-cap': 'round' },
+          paint: {
+            'line-color': '#0284c7',
+            'line-width': 6,
+            'line-opacity': 0.9
+          }
+        });
+      }
+    }
+
+    function isRealManeuver(step) {
+      const t = step.maneuver.type;
+      const m = step.maneuver.modifier || '';
+      if (t === 'depart') return false;
+      if (t === 'arrive' || t === 'roundabout' || t === 'rotary' || t === 'fork' || t === 'off ramp') return true;
+      if ((t === 'new name' || t === 'continue') && (m === '' || m === 'straight')) return false;
+      if (m.includes('left') || m.includes('right') || m.includes('uturn')) return true;
+      return false;
+    }
+
+    async function calculateRoute(isSilentUpdate = false) {
+      if (!destCoords) return;
+      lastRecalcTime = Date.now();
+
+      try {
+        const url = `https://router.project-osrm.org/route/v1/car/${userCoords[0]},${userCoords[1]};${destCoords[0]},${destCoords[1]}?overview=full&geometries=geojson&steps=true`;
+        const res = await fetch(url);
+        const data = await res.json();
+
+        if (!data.routes || !data.routes.length) return;
+
+        const route = data.routes[0];
+        const eta = formatArrival(route.duration);
+
+        planEta.textContent = eta.clock;
+        planSub.textContent = `Aankomst • ${eta.mins} min`;
+        driveEtaTime.textContent = eta.clock;
+        driveEtaSub.textContent = `Nog ${eta.mins} min`;
+
+        if (route.legs && route.legs[0] && route.legs[0].steps) {
+          routeSteps = route.legs[0].steps
+            .filter(isRealManeuver)
+            .map(s => ({
+              location: s.maneuver.location,
+              type: s.maneuver.type,
+              modifier: s.maneuver.modifier || '',
+              exit: s.maneuver.exit || null,
+              name: s.name || '',
+              warnedFar: false,
+              warnedMid: false,
+              warnedNow: false
+            }));
+          checkUpcomingManeuver();
+        }
+
+        lastRouteGeoJson = { type: 'Feature', geometry: route.geometry };
+        drawRouteOnMap(lastRouteGeoJson);
+
+        if (!isNavigating && !isSilentUpdate) {
+          const bounds = new maplibregl.LngLatBounds(userCoords, userCoords).extend(destCoords);
+          map.fitBounds(bounds, { padding: { top: 90, bottom: 130, left: 40, right: 40 }, pitch: 0 });
+        }
+      } catch (e) {}
+    }
+
+    // 10. Witte SVG-pijlen & Rotonde-afslagnummer + 1-2-3 piepjes
+    const turnIconBox = document.getElementById('turnIconBox');
+    const turnDist = document.getElementById('turnDist');
+    const turnStreet = document.getElementById('turnStreet');
+
+    function getDutchOrdinal(n) {
+      const ordinals = { 1: 'eerste', 2: 'tweede', 3: 'derde', 4: 'vierde', 5: 'vijfde' };
+      return ordinals[n] || `${n}e`;
+    }
+
+    function buildTurnSvg(step) {
+      const m = step.modifier;
+      if (step.type === 'arrive') {
+        return `<svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/>
+        </svg>`;
+      }
+      if (step.type === 'roundabout' || step.type === 'rotary') {
+        const exitNum = step.exit || '';
+        return `<svg width="48" height="48" viewBox="0 0 48 48">
+          <circle cx="24" cy="24" r="17" fill="none" stroke="#ffffff" stroke-width="4"/>
+          <line x1="24" y1="41" x2="24" y2="47" stroke="#ffffff" stroke-width="4" stroke-linecap="round"/>
+          <text x="24" y="30" text-anchor="middle" fill="#ffffff" font-size="19" font-weight="800" font-family="sans-serif">${exitNum}</text>
+        </svg>`;
+      }
+      if (m.includes('left')) {
+        return `<svg width="46" height="46" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="9 14 4 9 9 4"/><path d="M20 20v-7a4 4 0 0 0-4-4H4"/>
+        </svg>`;
+      }
+      if (m.includes('right')) {
+        return `<svg width="46" height="46" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="15 14 20 9 15 4"/><path d="M4 20v-7a4 4 0 0 1 4-4h12"/>
+        </svg>`;
+      }
+      return `<svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="12" y1="20" x2="12" y2="4"/><polyline points="6 10 12 4 18 10"/>
+      </svg>`;
+    }
+
+    function getManeuverLabel(step) {
+      const m = step.modifier;
+      if (step.type === 'arrive') return 'Bestemming bereikt';
+      if (step.type === 'roundabout' || step.type === 'rotary') {
+        return step.exit ? `Rotonde ${getDutchOrdinal(step.exit)} afslag` : 'Rotonde';
+      }
+      if (m.includes('left')) return 'Linksaf';
+      if (m.includes('right')) return 'Rechtsaf';
+      return 'Rechtdoor';
+    }
+
+    function checkUpcomingManeuver() {
+      if (!userCoords || !routeSteps.length) return;
+
+      const nextStep = routeSteps[0];
+      const dist = Math.round(distanceMeters(userCoords, nextStep.location));
+      const label = getManeuverLabel(nextStep);
+
+      turnIconBox.innerHTML = buildTurnSvg(nextStep);
+      turnDist.textContent = dist >= 1000 ? `${(dist / 1000).toFixed(1)} km` : `${dist} m`;
+      turnStreet.textContent = nextStep.name ? `${label} • ${nextStep.name}` : label;
+
+      if (!isNavigating) return;
+
+      if (dist <= 35 && !nextStep.warnedNow) {
+        nextStep.warnedNow = true;
+        playBeeps(3);
+        speakText(`Nu ${label.toLowerCase()}`);
+      } else if (dist <= 110 && dist > 35 && !nextStep.warnedMid) {
+        nextStep.warnedMid = true;
+        playBeeps(2);
+        speakText(`Over 100 meter ${label.toLowerCase()}`);
+      } else if (dist <= 300 && dist > 110 && !nextStep.warnedFar) {
+        nextStep.warnedFar = true;
+        playBeeps(1);
+      }
+
+      if (nextStep.warnedNow && dist > 55) {
+        calculateRoute(true);
+      }
+    }
+
+    // 11. Bedieningsknoppen
+    document.getElementById('startNavBtn').addEventListener('click', () => {
+      initAudio();
+      isNavigating = true;
+      document.body.classList.add('navigating');
+      map.easeTo({ pitch: 60, duration: 600 });
+      requestWakeLock();
+      startTracking(true);
+      playBeeps(1);
+    });
+
+    document.getElementById('stopNavBtn').addEventListener('click', () => {
+      isNavigating = false;
+      document.body.classList.remove('navigating');
+      map.easeTo({ pitch: 0, padding: { top: 0, bottom: 0, left: 0, right: 0 }, duration: 600 });
+      if (wakeLock) { wakeLock.release(); wakeLock = null; }
+    });
+
+    document.getElementById('closePlanBtn').addEventListener('click', () => {
+      isNavigating = false;
+      document.body.classList.remove('navigating');
+      planPanel.style.display = 'none';
+      if (destMarker) { destMarker.remove(); destMarker = null; }
+      if (map.getLayer('route-line')) map.removeLayer('route-line');
+      if (map.getSource('route')) map.removeSource('route');
+      destCoords = null;
+      lastRouteGeoJson = null;
+      routeSteps = [];
+      map.easeTo({ pitch: 0, duration: 500 });
+    });
+  </script>
+</body>
+</html>
