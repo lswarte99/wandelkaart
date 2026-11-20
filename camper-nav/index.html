@@ -9,9 +9,9 @@
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="theme-color" content="#0f172a" />
 
-  <link rel="manifest" href="manifest.json?v=4" />
-  <link rel="icon" type="image/png" sizes="512x512" href="camper-nav.png?v=4" />
-  <link rel="apple-touch-icon" href="camper-nav.png?v=4" />
+  <link rel="manifest" href="manifest.json?v=5" />
+  <link rel="icon" type="image/png" sizes="512x512" href="camper-nav.png?v=5" />
+  <link rel="apple-touch-icon" href="camper-nav.png?v=5" />
 
   <!-- MapLibre GL JS (3D Vectorkaart Engine) -->
   <link href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css" rel="stylesheet" />
@@ -31,13 +31,16 @@
       background-color: #e5e7eb;
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
     }
+    body.dark-mode {
+      background-color: #0b1120;
+    }
 
     #map {
       width: 100%;
       height: 100%;
     }
 
-    /* Bovenbalk: Zoeken (alleen in planstand) */
+    /* Bovenbalk: Zoeken + Favorietenknop (alleen in planstand) */
     .search-container {
       position: absolute;
       top: 14px;
@@ -56,7 +59,13 @@
       pointer-events: none;
     }
 
+    .search-row {
+      display: flex;
+      gap: 8px;
+    }
+
     .search-box {
+      flex: 1;
       display: flex;
       background: rgba(255, 255, 255, 0.96);
       border-radius: 14px;
@@ -65,48 +74,106 @@
       overflow: hidden;
     }
 
+    body.dark-mode .search-box {
+      background: rgba(30, 41, 59, 0.96);
+      border-color: rgba(255, 255, 255, 0.12);
+    }
+
     .search-box input {
       flex: 1;
+      min-width: 0;
       border: none;
-      padding: 13px 16px;
+      padding: 13px 12px;
       font-size: 16px;
       outline: none;
       background: transparent;
       color: #1e293b;
     }
 
+    body.dark-mode .search-box input {
+      color: #f1f5f9;
+    }
+
     .search-box button {
       border: none;
       background: #0f172a;
       color: #ffffff;
-      padding: 0 18px;
+      padding: 0 14px;
       font-weight: 600;
       font-size: 15px;
       cursor: pointer;
     }
 
-    .search-results {
+    body.dark-mode .search-box button {
+      background: #0284c7;
+    }
+
+    .fav-toggle-btn {
+      width: 48px;
+      height: 48px;
+      border-radius: 14px;
+      background: rgba(255, 255, 255, 0.96);
+      border: 1px solid rgba(0, 0, 0, 0.1);
+      box-shadow: 0 3px 14px rgba(0, 0, 0, 0.16);
+      font-size: 20px;
+      color: #e11d48;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      flex-shrink: 0;
+    }
+
+    body.dark-mode .fav-toggle-btn {
+      background: rgba(30, 41, 59, 0.96);
+      border-color: rgba(255, 255, 255, 0.12);
+    }
+
+    .dropdown-list {
       background: #ffffff;
       border-radius: 14px;
-      box-shadow: 0 6px 22px rgba(0, 0, 0, 0.2);
-      max-height: 240px;
+      box-shadow: 0 6px 22px rgba(0, 0, 0, 0.22);
+      max-height: 260px;
       overflow-y: auto;
       display: none;
     }
 
-    .search-result-item {
+    body.dark-mode .dropdown-list {
+      background: #1e293b;
+      color: #f1f5f9;
+    }
+
+    .dropdown-item {
       padding: 12px 16px;
       border-bottom: 1px solid #f1f5f9;
       font-size: 14px;
       color: #1e293b;
       cursor: pointer;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
     }
 
-    .search-result-item:last-child {
+    body.dark-mode .dropdown-item {
+      border-bottom-color: #334155;
+      color: #f1f5f9;
+    }
+
+    .dropdown-item:last-child {
       border-bottom: none;
     }
 
-    /* Afslagbalk bovenin (alleen zichtbaar tijdens rijden) */
+    .del-fav-btn {
+      background: transparent;
+      border: none;
+      color: #94a3b8;
+      font-size: 16px;
+      padding: 4px 8px;
+      cursor: pointer;
+    }
+
+    /* Afslagbalk bovenin tijdens rijden (Tekst links, witte SVG-pijl rechts) */
     .turn-banner {
       position: absolute;
       top: 14px;
@@ -117,21 +184,16 @@
       color: #ffffff;
       border-radius: 16px;
       padding: 14px 18px;
-      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.28);
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.35);
       display: none;
       align-items: center;
-      gap: 16px;
+      justify-content: space-between;
+      gap: 14px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
     }
 
     body.navigating .turn-banner {
       display: flex;
-    }
-
-    .turn-icon {
-      font-size: 34px;
-      line-height: 1;
-      min-width: 40px;
-      text-align: center;
     }
 
     .turn-info {
@@ -140,7 +202,7 @@
     }
 
     .turn-dist {
-      font-size: 22px;
+      font-size: 24px;
       font-weight: 800;
       letter-spacing: -0.3px;
     }
@@ -154,7 +216,16 @@
       margin-top: 2px;
     }
 
-    /* Rechter zijknoppen: Geluid, 2D/3D en GPS */
+    .turn-icon-box {
+      width: 52px;
+      height: 52px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    /* Rechter zijknoppen: Geluid, Dag/Nacht, 2D/3D en GPS */
     .side-controls {
       position: absolute;
       right: 14px;
@@ -186,10 +257,22 @@
       cursor: pointer;
     }
 
+    body.dark-mode .ctrl-btn {
+      background: #1e293b;
+      border-color: rgba(255, 255, 255, 0.15);
+      color: #f1f5f9;
+    }
+
     .ctrl-btn.active {
       background: #eff6ff;
       border-color: #2563eb;
       color: #2563eb;
+    }
+
+    body.dark-mode .ctrl-btn.active {
+      background: #172554;
+      border-color: #38bdf8;
+      color: #38bdf8;
     }
 
     /* Onderpaneel in Planstand (voor vertrek) */
@@ -208,6 +291,11 @@
       gap: 12px;
     }
 
+    body.dark-mode .plan-panel {
+      background: #1e293b;
+      color: #f1f5f9;
+    }
+
     body.navigating .plan-panel {
       display: none !important;
     }
@@ -216,25 +304,42 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
-      gap: 10px;
+      gap: 8px;
     }
 
     .plan-eta {
-      font-size: 18px;
+      font-size: 17px;
       font-weight: 700;
       color: #0f172a;
     }
 
-    .close-btn {
+    body.dark-mode .plan-eta {
+      color: #f8fafc;
+    }
+
+    .plan-top-btns {
+      display: flex;
+      gap: 6px;
+    }
+
+    .icon-circle-btn {
       background: #f1f5f9;
       border: none;
       border-radius: 50%;
-      width: 32px;
-      height: 32px;
+      width: 34px;
+      height: 34px;
       font-size: 16px;
       font-weight: bold;
       color: #475569;
       cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    body.dark-mode .icon-circle-btn {
+      background: #334155;
+      color: #cbd5e1;
     }
 
     .plan-actions {
@@ -254,10 +359,22 @@
       cursor: pointer;
     }
 
+    body.dark-mode .mode-btn {
+      background: #0f172a;
+      border-color: #475569;
+      color: #cbd5e1;
+    }
+
     .mode-btn.active {
       border-color: #0f172a;
       background: #f1f5f9;
       color: #0f172a;
+    }
+
+    body.dark-mode .mode-btn.active {
+      border-color: #38bdf8;
+      background: #172554;
+      color: #38bdf8;
     }
 
     .start-btn {
@@ -272,7 +389,7 @@
       cursor: pointer;
     }
 
-    /* Slanke Onderbalk tijdens het rijden (alleen Aankomsttijd + Stop) */
+    /* Slanke Onderbalk tijdens rijden (STOP links, AANKOMSTTIJD rechts) */
     .drive-bar {
       position: absolute;
       bottom: 14px;
@@ -288,13 +405,30 @@
       justify-content: space-between;
     }
 
+    body.dark-mode .drive-bar {
+      background: #1e293b;
+    }
+
     body.navigating .drive-bar {
       display: flex;
+    }
+
+    .stop-btn {
+      background: #dc2626;
+      color: #ffffff;
+      border: none;
+      border-radius: 12px;
+      padding: 12px 24px;
+      font-weight: 700;
+      font-size: 15px;
+      cursor: pointer;
     }
 
     .eta-box {
       display: flex;
       flex-direction: column;
+      align-items: flex-end;
+      text-align: right;
     }
 
     .eta-time {
@@ -304,21 +438,18 @@
       line-height: 1.1;
     }
 
+    body.dark-mode .eta-time {
+      color: #f8fafc;
+    }
+
     .eta-sub {
       font-size: 13px;
       color: #64748b;
       margin-top: 2px;
     }
 
-    .stop-btn {
-      background: #dc2626;
-      color: #ffffff;
-      border: none;
-      border-radius: 12px;
-      padding: 12px 22px;
-      font-weight: 700;
-      font-size: 15px;
-      cursor: pointer;
+    body.dark-mode .eta-sub {
+      color: #94a3b8;
     }
 
     /* Eigen GPS Pijl Marker */
@@ -356,6 +487,9 @@
       box-shadow: 0 2px 5px rgba(0, 0, 0, 0.25);
       cursor: pointer;
     }
+    body.dark-mode .charger-pin {
+      background: #1e293b;
+    }
     .charger-pin.chademo {
       border-color: #0284c7;
       border-width: 2.5px;
@@ -366,6 +500,7 @@
       padding: 12px 14px;
       font-family: inherit;
       max-width: 240px;
+      color: #0f172a;
     }
     .popup-route-btn {
       margin-top: 8px;
@@ -385,27 +520,32 @@
 
   <div id="map"></div>
 
-  <!-- Zoekbalk (verdwijnt automatisch tijdens rijden) -->
+  <!-- Zoekbalk + Favorieten (verdwijnt automatisch tijdens rijden) -->
   <div class="search-container">
-    <div class="search-box">
-      <input type="text" id="searchInput" placeholder="Waar gaan we naartoe?" />
-      <button id="searchBtn">Zoek</button>
+    <div class="search-row">
+      <div class="search-box">
+        <input type="text" id="searchInput" placeholder="Waar gaan we naartoe?" />
+        <button id="searchBtn">Zoek</button>
+      </div>
+      <button id="favToggleBtn" class="fav-toggle-btn" title="Favorieten">♥</button>
     </div>
-    <div id="searchResults" class="search-results"></div>
+    <div id="searchResults" class="dropdown-list"></div>
+    <div id="favList" class="dropdown-list"></div>
   </div>
 
-  <!-- Afslagbalk bovenin tijdens het rijden -->
+  <!-- Afslagbalk bovenin tijdens rijden (Tekst links, witte SVG-pijl rechts) -->
   <div id="turnBanner" class="turn-banner">
-    <div id="turnIcon" class="turn-icon">⬆️</div>
     <div class="turn-info">
       <div id="turnDist" class="turn-dist">-- m</div>
       <div id="turnStreet" class="turn-street">Volg de route</div>
     </div>
+    <div id="turnIconBox" class="turn-icon-box"></div>
   </div>
 
-  <!-- Rechts: Geluid (Piepjes/Spraak/Stil), 2D/3D en GPS -->
+  <!-- Rechts: Geluid, Dag/Nacht, 2D/3D en GPS -->
   <div class="side-controls">
     <button id="audioBtn" class="ctrl-btn active" title="Geluid: Piepjes / Spraak / Stil">🔔</button>
+    <button id="themeBtn" class="ctrl-btn" title="Thema: Auto (zon) / Dag / Nacht">🌓</button>
     <button id="tiltBtn" class="ctrl-btn" title="Wissel 2D / 3D">3D</button>
     <button id="gpsBtn" class="ctrl-btn" title="Volg mijn locatie">
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
@@ -422,7 +562,10 @@
   <div id="planPanel" class="plan-panel">
     <div class="plan-header">
       <div id="planEta" class="plan-eta">Aankomst berekenen...</div>
-      <button id="closePlanBtn" class="close-btn" aria-label="Sluiten">✕</button>
+      <div class="plan-top-btns">
+        <button id="saveFavBtn" class="icon-circle-btn" title="Opslaan als favoriet">♡</button>
+        <button id="closePlanBtn" class="icon-circle-btn" aria-label="Sluiten">✕</button>
+      </div>
     </div>
     <div class="plan-actions">
       <button id="modeCar" class="mode-btn active">🚐 Camper</button>
@@ -431,60 +574,43 @@
     </div>
   </div>
 
-  <!-- Slanke balk tijdens rijden -->
+  <!-- Slanke balk tijdens rijden: STOP links, AANKOMSTTIJD rechts -->
   <div id="driveBar" class="drive-bar">
+    <button id="stopNavBtn" class="stop-btn">Stop</button>
     <div class="eta-box">
       <div id="driveEtaTime" class="eta-time">--:--</div>
       <div id="driveEtaSub" class="eta-sub">Aankomsttijd</div>
     </div>
-    <button id="stopNavBtn" class="stop-btn">Stop</button>
   </div>
 
   <script>
-    // 1. Kaart initialiseren
-    const map = new maplibregl.Map({
-      container: 'map',
-      style: 'https://tiles.openfreemap.org/styles/bright',
-      center: [4.7625, 52.8935],
-      zoom: 12,
-      pitch: 0,
-      bearing: 0
-    });
+    // 1. Zonsopkomst & Zonsondergang berekening (NOAA-algoritme op basis van GPS & datum)
+    function isNightAtCoords(lat, lng) {
+      const now = new Date();
+      const start = new Date(now.getFullYear(), 0, 0);
+      const dayOfYear = Math.floor((now - start) / 86400000);
+      const rad = Math.PI / 180;
+      const decl = 23.44 * Math.sin(rad * (360 / 365) * (dayOfYear - 81));
+      const cosH = (Math.cos(rad * 90.833) - Math.sin(rad * lat) * Math.sin(rad * decl)) /
+                   (Math.cos(rad * lat) * Math.cos(rad * decl));
 
-    map.on('load', () => {
-      const layers = map.getStyle().layers;
-      let labelLayerId;
-      for (let i = 0; i < layers.length; i++) {
-        if (layers[i].type === 'symbol' && layers[i].layout['text-field']) {
-          labelLayerId = layers[i].id;
-          break;
-        }
-      }
+      if (cosH > 1) return true;
+      if (cosH < -1) return false;
 
-      if (map.getSource('openmaptiles')) {
-        map.addLayer({
-          'id': '3d-buildings',
-          'source': 'openmaptiles',
-          'source-layer': 'building',
-          'type': 'fill-extrusion',
-          'minzoom': 14,
-          'paint': {
-            'fill-extrusion-color': '#cbd5e1',
-            'fill-extrusion-height': ['get', 'render_height'],
-            'fill-extrusion-base': ['get', 'render_min_height'],
-            'fill-extrusion-opacity': 0.75
-          }
-        }, labelLayerId);
-      }
+      const H = Math.acos(cosH) / rad / 15; // Uren vanaf zonnemiddag
+      const solarNoonUTC = 12 - (lng / 15);
+      const sunriseUTC = solarNoonUTC - H;
+      const sunsetUTC = solarNoonUTC + H;
+      const currentUTC = now.getUTCHours() + now.getUTCMinutes() / 60;
 
-      // Laadpalen direct eenmalig ophalen voor het startgebied
-      fetchChargersSilently();
-    });
+      return (currentUTC < sunriseUTC || currentUTC > sunsetUTC);
+    }
 
     // Staatvariabelen
-    let userCoords = null;
+    let userCoords = [4.7625, 52.8935]; // Julianadorp als startreferentie
     let userMarker = null;
     let destCoords = null;
+    let destName = '';
     let destMarker = null;
     let travelMode = 'driving';
     let isNavigating = false;
@@ -494,7 +620,103 @@
     let routeSteps = [];
     let lastRecalcTime = 0;
 
-    // 2. Audio-engine (1-2-3 piepjes via Web Audio API + optioneel spraak)
+    // Thema-beheer ('auto' | 'light' | 'dark')
+    let themeMode = 'auto';
+    let currentDarkState = isNightAtCoords(userCoords[1], userCoords[0]);
+    const themeBtn = document.getElementById('themeBtn');
+
+    const STYLES = {
+      light: 'https://tiles.openfreemap.org/styles/bright',
+      dark: 'https://tiles.openfreemap.org/styles/dark'
+    };
+
+    // 2. Kaart initialiseren
+    const map = new maplibregl.Map({
+      container: 'map',
+      style: currentDarkState ? STYLES.dark : STYLES.light,
+      center: userCoords,
+      zoom: 12,
+      pitch: 0,
+      bearing: 0
+    });
+
+    function setupMapLayers() {
+      const layers = map.getStyle().layers;
+      let labelLayerId;
+      for (let i = 0; i < layers.length; i++) {
+        if (layers[i].type === 'symbol' && layers[i].layout['text-field']) {
+          labelLayerId = layers[i].id;
+          break;
+        }
+      }
+
+      if (map.getSource('openmaptiles') && !map.getLayer('3d-buildings')) {
+        map.addLayer({
+          'id': '3d-buildings',
+          'source': 'openmaptiles',
+          'source-layer': 'building',
+          'type': 'fill-extrusion',
+          'minzoom': 14,
+          'paint': {
+            'fill-extrusion-color': currentDarkState ? '#334155' : '#cbd5e1',
+            'fill-extrusion-height': ['get', 'render_height'],
+            'fill-extrusion-base': ['get', 'render_min_height'],
+            'fill-extrusion-opacity': 0.78
+          }
+        }, labelLayerId);
+      }
+
+      // Herstel routelijn na stijl-wissel
+      if (lastRouteGeoJson) {
+        drawRouteOnMap(lastRouteGeoJson);
+      }
+    }
+
+    function applyTheme(forceRecheck = false) {
+      let shouldBeDark = currentDarkState;
+      if (themeMode === 'auto') {
+        shouldBeDark = isNightAtCoords(userCoords[1], userCoords[0]);
+      } else {
+        shouldBeDark = (themeMode === 'dark');
+      }
+
+      document.body.classList.toggle('dark-mode', shouldBeDark);
+
+      if (shouldBeDark !== currentDarkState || forceRecheck) {
+        currentDarkState = shouldBeDark;
+        map.setStyle(currentDarkState ? STYLES.dark : STYLES.light);
+        map.once('styledata', setupMapLayers);
+      }
+    }
+
+    document.body.classList.toggle('dark-mode', currentDarkState);
+
+    themeBtn.addEventListener('click', () => {
+      if (themeMode === 'auto') {
+        themeMode = 'dark';
+        themeBtn.textContent = '🌙';
+      } else if (themeMode === 'dark') {
+        themeMode = 'light';
+        themeBtn.textContent = '☀️';
+      } else {
+        themeMode = 'auto';
+        themeBtn.textContent = '🌓';
+      }
+      applyTheme();
+    });
+
+    // Controleer elke minuut of de zon intussen onder of op is gegaan
+    setInterval(() => {
+      if (themeMode === 'auto') applyTheme();
+    }, 60000);
+
+    map.on('load', () => {
+      setupMapLayers();
+      fetchChargersSilently();
+      loadFavorites();
+    });
+
+    // 3. Krachtigere Audio-engine (1-2-3 piepjes + NL spraak)
     let audioMode = 'beeps'; // 'beeps' | 'voice' | 'mute'
     const audioBtn = document.getElementById('audioBtn');
     let audioCtx = null;
@@ -515,14 +737,15 @@
       for (let i = 0; i < count; i++) {
         const osc = audioCtx.createOscillator();
         const gain = audioCtx.createGain();
-        osc.type = 'sine';
-        osc.frequency.setValueAtTime(count === 3 ? 880 : 660, now + i * 0.22);
-        gain.gain.setValueAtTime(0.25, now + i * 0.22);
-        gain.gain.exponentialRampToValueAtTime(0.001, now + i * 0.22 + 0.14);
+        // Driehoeksgolf klinkt voller en duidelijker op kleine telefoonluidsprekers
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(count === 3 ? 980 : 740, now + i * 0.24);
+        gain.gain.setValueAtTime(0.65, now + i * 0.24);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + i * 0.24 + 0.17);
         osc.connect(gain);
         gain.connect(audioCtx.destination);
-        osc.start(now + i * 0.22);
-        osc.stop(now + i * 0.22 + 0.15);
+        osc.start(now + i * 0.24);
+        osc.stop(now + i * 0.24 + 0.18);
       }
     }
 
@@ -531,7 +754,14 @@
       window.speechSynthesis.cancel();
       const utter = new SpeechSynthesisUtterance(text);
       utter.lang = 'nl-NL';
+      const voices = window.speechSynthesis.getVoices();
+      const nlVoice = voices.find(v => v.lang && v.lang.toLowerCase().startsWith('nl'));
+      if (nlVoice) utter.voice = nlVoice;
       window.speechSynthesis.speak(utter);
+    }
+
+    if ('speechSynthesis' in window) {
+      window.speechSynthesis.onvoiceschanged = () => window.speechSynthesis.getVoices();
     }
 
     audioBtn.addEventListener('click', () => {
@@ -553,7 +783,7 @@
       }
     });
 
-    // 3. 2D / 3D Schakelaar
+    // 4. 2D / 3D Schakelaar
     const tiltBtn = document.getElementById('tiltBtn');
     let is3D = false;
 
@@ -566,7 +796,7 @@
 
     tiltBtn.addEventListener('click', () => set3DMode(!is3D));
 
-    // 4. Afstandsberekening (Haversine in meters)
+    // 5. Afstandsberekening (Haversine in meters)
     function distanceMeters(c1, c2) {
       const R = 6371000;
       const toRad = d => d * Math.PI / 180;
@@ -577,7 +807,7 @@
       return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
     }
 
-    // 5. GPS Tracking & Live Afslag/ETA update
+    // 6. GPS Tracking
     const gpsBtn = document.getElementById('gpsBtn');
 
     async function requestWakeLock() {
@@ -609,10 +839,7 @@
       }
 
       if (followGps || isNavigating) {
-        const camOptions = {
-          center: userCoords,
-          duration: 800
-        };
+        const camOptions = { center: userCoords, duration: 800 };
         if (isNavigating) {
           camOptions.zoom = travelMode === 'driving' ? 16.5 : 17.5;
           camOptions.pitch = 60;
@@ -628,7 +855,6 @@
 
       if (isNavigating && destCoords) {
         checkUpcomingManeuver();
-        // Elke 20 seconden route & aankomsttijd live verversen
         if (Date.now() - lastRecalcTime > 20000) {
           calculateRoute(true);
         }
@@ -675,21 +901,21 @@
     if ('geolocation' in navigator) {
       navigator.geolocation.getCurrentPosition((pos) => {
         updateUserPosition(pos);
+        if (themeMode === 'auto') applyTheme();
         map.jumpTo({ center: [pos.coords.longitude, pos.coords.latitude], zoom: 13 });
       }, () => {}, { enableHighAccuracy: true });
     }
 
-    // 6. Automatisch & geruisloos laadpalen op de kaart tonen
+    // 7. Automatisch laadpalen op de kaart
     let chargerMarkers = [];
     let lastChargerFetchCenter = null;
 
     async function fetchChargersSilently() {
-      const zoom = map.getZoom();
-      if (zoom < 11.5) return; // Alleen laden als je voldoende bent ingezoomd
+      if (map.getZoom() < 11.5) return;
 
       const center = map.getCenter();
       if (lastChargerFetchCenter && distanceMeters([center.lng, center.lat], lastChargerFetchCenter) < 4000) {
-        return; // Kaart is nauwelijks verschoven
+        return;
       }
       lastChargerFetchCenter = [center.lng, center.lat];
 
@@ -725,10 +951,11 @@
           pin.className = hasChademo ? 'charger-pin chademo' : 'charger-pin';
           pin.textContent = hasChademo ? '⚡' : '🔌';
 
+          const safeName = name.replace(/'/g, "\\'");
           const popupHtml = `
             <strong>${name}</strong><br>
             <small>${hasChademo ? 'CHAdeMO snellader' : 'Reguliere laadpaal'}</small>
-            <button class="popup-route-btn" onclick="selectDestination(${lon}, ${lat})">
+            <button class="popup-route-btn" onclick="selectDestination(${lon}, ${lat}, '${safeName}')">
               Route hierheen
             </button>
           `;
@@ -741,14 +968,95 @@
 
           chargerMarkers.push(marker);
         });
-      } catch (e) {
-        // Geruisloos negeren als Overpass even druk is — geen irritante pop-ups
-      }
+      } catch (e) {}
     }
 
     map.on('moveend', fetchChargersSilently);
 
-    // 7. Zoekbalk (Nominatim OpenStreetMap)
+    // 8. Favorietenlijst (uit favorieten.json + lokaal opgeslagen plekken)
+    const favToggleBtn = document.getElementById('favToggleBtn');
+    const favList = document.getElementById('favList');
+    const saveFavBtn = document.getElementById('saveFavBtn');
+    let favorites = [];
+
+    async function loadFavorites() {
+      let fileFavs = [];
+      try {
+        const res = await fetch('favorieten.json?v=' + Date.now());
+        if (res.ok) fileFavs = await res.json();
+      } catch (e) {}
+
+      let localFavs = [];
+      try {
+        localFavs = JSON.parse(localStorage.getItem('camper_nav_favs') || '[]');
+      } catch (e) {}
+
+      favorites = [
+        ...fileFavs.map(f => ({ ...f, fromFile: true })),
+        ...localFavs.map(f => ({ ...f, fromFile: false }))
+      ];
+      renderFavorites();
+    }
+
+    function renderFavorites() {
+      favList.innerHTML = '';
+      if (!favorites.length) {
+        favList.innerHTML = '<div class="dropdown-item">Nog geen favorieten opgeslagen</div>';
+        return;
+      }
+
+      favorites.forEach((fav, idx) => {
+        const div = document.createElement('div');
+        div.className = 'dropdown-item';
+
+        const label = document.createElement('span');
+        label.textContent = `♥ ${fav.naam}`;
+        label.style.flex = '1';
+        label.addEventListener('click', () => {
+          favList.style.display = 'none';
+          selectDestination(fav.lon, fav.lat, fav.naam);
+        });
+        div.appendChild(label);
+
+        if (!fav.fromFile) {
+          const del = document.createElement('button');
+          del.className = 'del-fav-btn';
+          del.textContent = '✕';
+          del.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const localFavs = JSON.parse(localStorage.getItem('camper_nav_favs') || '[]');
+            const updated = localFavs.filter(lf => lf.naam !== fav.naam);
+            localStorage.setItem('camper_nav_favs', JSON.stringify(updated));
+            loadFavorites();
+          });
+          div.appendChild(del);
+        }
+
+        favList.appendChild(div);
+      });
+    }
+
+    favToggleBtn.addEventListener('click', () => {
+      searchResults.style.display = 'none';
+      const isVisible = favList.style.display === 'block';
+      favList.style.display = isVisible ? 'none' : 'block';
+    });
+
+    saveFavBtn.addEventListener('click', () => {
+      if (!destCoords) return;
+      const defaultName = destName || 'Favoriete plek';
+      const customName = prompt('Naam voor deze favoriet:', defaultName);
+      if (!customName) return;
+
+      const localFavs = JSON.parse(localStorage.getItem('camper_nav_favs') || '[]');
+      localFavs.push({ naam: customName.trim(), lat: destCoords[1], lon: destCoords[0] });
+      localStorage.setItem('camper_nav_favs', JSON.stringify(localFavs));
+      saveFavBtn.textContent = '♥';
+      saveFavBtn.style.color = '#e11d48';
+      loadFavorites();
+    });
+
+    // 9. Zoekbalk (Nominatim OpenStreetMap)
     const searchInput = document.getElementById('searchInput');
     const searchBtn = document.getElementById('searchBtn');
     const searchResults = document.getElementById('searchResults');
@@ -756,8 +1064,9 @@
     async function performSearch() {
       const q = searchInput.value.trim();
       if (!q) return;
+      favList.style.display = 'none';
       searchResults.style.display = 'block';
-      searchResults.innerHTML = '<div class="search-result-item">Zoeken...</div>';
+      searchResults.innerHTML = '<div class="dropdown-item">Zoeken...</div>';
 
       try {
         const url = `https://nominatim.openstreetmap.org/search?format=json&limit=5&countrycodes=nl,be,de&q=${encodeURIComponent(q)}`;
@@ -765,24 +1074,25 @@
         const items = await res.json();
 
         if (!items.length) {
-          searchResults.innerHTML = '<div class="search-result-item">Niets gevonden</div>';
+          searchResults.innerHTML = '<div class="dropdown-item">Niets gevonden</div>';
           return;
         }
 
         searchResults.innerHTML = '';
         items.forEach(item => {
           const div = document.createElement('div');
-          div.className = 'search-result-item';
+          div.className = 'dropdown-item';
           div.textContent = item.display_name;
           div.addEventListener('click', () => {
             searchResults.style.display = 'none';
             searchInput.blur();
-            selectDestination(parseFloat(item.lon), parseFloat(item.lat));
+            const shortName = item.display_name.split(',').slice(0, 2).join(', ');
+            selectDestination(parseFloat(item.lon), parseFloat(item.lat), shortName);
           });
           searchResults.appendChild(div);
         });
       } catch (e) {
-        searchResults.innerHTML = '<div class="search-result-item">Zoekfout</div>';
+        searchResults.innerHTML = '<div class="dropdown-item">Zoekfout</div>';
       }
     }
 
@@ -791,13 +1101,14 @@
       if (e.key === 'Enter') performSearch();
     });
 
-    // 8. Routeberekening (OSRM met stappen) & Live Aankomsttijd
+    // 10. Routeberekening (met filter op echte afslagen)
     const planPanel = document.getElementById('planPanel');
     const planEta = document.getElementById('planEta');
     const driveEtaTime = document.getElementById('driveEtaTime');
     const driveEtaSub = document.getElementById('driveEtaSub');
     const modeCarBtn = document.getElementById('modeCar');
     const modeWalkBtn = document.getElementById('modeWalk');
+    let lastRouteGeoJson = null;
 
     function formatArrival(durationSeconds) {
       const arrival = new Date(Date.now() + durationSeconds * 1000);
@@ -807,9 +1118,12 @@
       return { clock: `${hh}:${mm}`, mins };
     }
 
-    window.selectDestination = function(lng, lat) {
+    window.selectDestination = function(lng, lat, label = '') {
       document.querySelectorAll('.maplibregl-popup').forEach(p => p.remove());
       destCoords = [lng, lat];
+      destName = label;
+      saveFavBtn.textContent = '♡';
+      saveFavBtn.style.color = '';
       planPanel.style.display = 'flex';
       planEta.textContent = 'Aankomst berekenen...';
 
@@ -821,15 +1135,46 @@
       calculateRoute(false);
     };
 
+    function drawRouteOnMap(geojson) {
+      const color = travelMode === 'driving' ? '#0284c7' : '#d97706';
+      if (map.getSource('route')) {
+        map.getSource('route').setData(geojson);
+        map.setPaintProperty('route-line', 'line-color', color);
+      } else {
+        map.addSource('route', { type: 'geojson', data: geojson });
+        map.addLayer({
+          id: 'route-line',
+          type: 'line',
+          source: 'route',
+          layout: { 'line-join': 'round', 'line-cap': 'round' },
+          paint: {
+            'line-color': color,
+            'line-width': 6,
+            'line-opacity': 0.9
+          }
+        });
+      }
+    }
+
+    // Filtert onnodige "rechtdoor"-stappen weg zodat hij alleen bij echte afslagen/rotondes piept
+    function isRealManeuver(step) {
+      const t = step.maneuver.type;
+      const m = step.maneuver.modifier || '';
+      if (t === 'depart') return false;
+      if (t === 'arrive' || t === 'roundabout' || t === 'rotary' || t === 'fork' || t === 'off ramp') return true;
+      if ((t === 'new name' || t === 'continue') && (m === '' || m === 'straight')) return false;
+      if (m.includes('left') || m.includes('right') || m.includes('uturn')) return true;
+      return false;
+    }
+
     async function calculateRoute(isSilentUpdate = false) {
       if (!destCoords) return;
       lastRecalcTime = Date.now();
 
-      const start = userCoords || [map.getCenter().lng, map.getCenter().lat];
       const profile = travelMode === 'driving' ? 'car' : 'foot';
 
       try {
-        const url = `https://router.project-osrm.org/route/v1/${profile}/${start[0]},${start[1]};${destCoords[0]},${destCoords[1]}?overview=full&geometries=geojson&steps=true`;
+        const url = `https://router.project-osrm.org/route/v1/${profile}/${userCoords[0]},${userCoords[1]};${destCoords[0]},${destCoords[1]}?overview=full&geometries=geojson&steps=true`;
         const res = await fetch(url);
         const data = await res.json();
 
@@ -842,97 +1187,115 @@
         driveEtaTime.textContent = eta.clock;
         driveEtaSub.textContent = `Nog ${eta.mins} min`;
 
-        // Afslagstappen opslaan met bewaakte waarschuwingsstatus
         if (route.legs && route.legs[0] && route.legs[0].steps) {
-          routeSteps = route.legs[0].steps.map(s => ({
-            location: s.maneuver.location,
-            type: s.maneuver.type,
-            modifier: s.maneuver.modifier || '',
-            name: s.name || '',
-            warnedFar: false,
-            warnedMid: false,
-            warnedNow: false
-          }));
+          routeSteps = route.legs[0].steps
+            .filter(isRealManeuver)
+            .map(s => ({
+              location: s.maneuver.location,
+              type: s.maneuver.type,
+              modifier: s.maneuver.modifier || '',
+              exit: s.maneuver.exit || null,
+              name: s.name || '',
+              warnedFar: false,
+              warnedMid: false,
+              warnedNow: false
+            }));
           checkUpcomingManeuver();
         }
 
-        const geojson = { type: 'Feature', geometry: route.geometry };
-
-        if (map.getSource('route')) {
-          map.getSource('route').setData(geojson);
-        } else {
-          map.addSource('route', { type: 'geojson', data: geojson });
-          map.addLayer({
-            id: 'route-line',
-            type: 'line',
-            source: 'route',
-            layout: { 'line-join': 'round', 'line-cap': 'round' },
-            paint: {
-              'line-color': travelMode === 'driving' ? '#0284c7' : '#d97706',
-              'line-width': 6,
-              'line-opacity': 0.88
-            }
-          });
-        }
-
-        map.setPaintProperty('route-line', 'line-color', travelMode === 'driving' ? '#0284c7' : '#d97706');
+        lastRouteGeoJson = { type: 'Feature', geometry: route.geometry };
+        drawRouteOnMap(lastRouteGeoJson);
 
         if (!isNavigating && !isSilentUpdate) {
-          const bounds = new maplibregl.LngLatBounds(start, start).extend(destCoords);
+          const bounds = new maplibregl.LngLatBounds(userCoords, userCoords).extend(destCoords);
           map.fitBounds(bounds, { padding: { top: 90, bottom: 160, left: 40, right: 40 }, pitch: 0 });
         }
       } catch (e) {}
     }
 
-    // 9. Afslagpijl & 1-2-3 piepjes controle
-    const turnIcon = document.getElementById('turnIcon');
+    // 11. Witte SVG-pijlen & Rotonde-afslagnummer + 1-2-3 piepjes
+    const turnIconBox = document.getElementById('turnIconBox');
     const turnDist = document.getElementById('turnDist');
     const turnStreet = document.getElementById('turnStreet');
 
-    function getManeuverInfo(step) {
+    function getDutchOrdinal(n) {
+      const ordinals = { 1: 'eerste', 2: 'tweede', 3: 'derde', 4: 'vierde', 5: 'vijfde' };
+      return ordinals[n] || `${n}e`;
+    }
+
+    function buildTurnSvg(step) {
       const m = step.modifier;
-      if (step.type === 'arrive') return { icon: '🏁', text: 'Bestemming bereikt' };
-      if (step.type === 'roundabout' || step.type === 'rotary') return { icon: '🔄', text: 'Rotonde' };
-      if (m.includes('left')) return { icon: '↰', text: 'Linksaf' };
-      if (m.includes('right')) return { icon: '↱', text: 'Rechtsaf' };
-      return { icon: '⬆️', text: 'Rechtdoor' };
+      if (step.type === 'arrive') {
+        return `<svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/>
+        </svg>`;
+      }
+      if (step.type === 'roundabout' || step.type === 'rotary') {
+        const exitNum = step.exit || '';
+        return `<svg width="48" height="48" viewBox="0 0 48 48">
+          <circle cx="24" cy="24" r="17" fill="none" stroke="#ffffff" stroke-width="4"/>
+          <line x1="24" y1="41" x2="24" y2="47" stroke="#ffffff" stroke-width="4" stroke-linecap="round"/>
+          <text x="24" y="30" text-anchor="middle" fill="#ffffff" font-size="19" font-weight="800" font-family="sans-serif">${exitNum}</text>
+        </svg>`;
+      }
+      if (m.includes('left')) {
+        return `<svg width="46" height="46" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="9 14 4 9 9 4"/><path d="M20 20v-7a4 4 0 0 0-4-4H4"/>
+        </svg>`;
+      }
+      if (m.includes('right')) {
+        return `<svg width="46" height="46" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="15 14 20 9 15 4"/><path d="M4 20v-7a4 4 0 0 1 4-4h12"/>
+        </svg>`;
+      }
+      return `<svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="12" y1="20" x2="12" y2="4"/><polyline points="6 10 12 4 18 10"/>
+      </svg>`;
+    }
+
+    function getManeuverLabel(step) {
+      const m = step.modifier;
+      if (step.type === 'arrive') return 'Bestemming bereikt';
+      if (step.type === 'roundabout' || step.type === 'rotary') {
+        return step.exit ? `Rotonde ${getDutchOrdinal(step.exit)} afslag` : 'Rotonde';
+      }
+      if (m.includes('left')) return 'Linksaf';
+      if (m.includes('right')) return 'Rechtsaf';
+      return 'Rechtdoor';
     }
 
     function checkUpcomingManeuver() {
-      if (!userCoords || routeSteps.length < 2) return;
+      if (!userCoords || !routeSteps.length) return;
 
-      // Stap 0 is vertrekpunt; stap 1 is de eerstvolgende echte afslag
-      const nextStep = routeSteps[1];
+      const nextStep = routeSteps[0];
       const dist = Math.round(distanceMeters(userCoords, nextStep.location));
-      const info = getManeuverInfo(nextStep);
+      const label = getManeuverLabel(nextStep);
 
-      turnIcon.textContent = info.icon;
+      turnIconBox.innerHTML = buildTurnSvg(nextStep);
       turnDist.textContent = dist >= 1000 ? `${(dist / 1000).toFixed(1)} km` : `${dist} m`;
-      turnStreet.textContent = nextStep.name ? `${info.text} • ${nextStep.name}` : info.text;
+      turnStreet.textContent = nextStep.name ? `${label} • ${nextStep.name}` : label;
 
       if (!isNavigating) return;
 
-      // 1-2-3 piepjes (en optionele spraak) op basis van afstand
       if (dist <= 35 && !nextStep.warnedNow) {
         nextStep.warnedNow = true;
         playBeeps(3);
-        speakText(`Nu ${info.text.toLowerCase()}`);
+        speakText(`Nu ${label.toLowerCase()}`);
       } else if (dist <= 110 && dist > 35 && !nextStep.warnedMid) {
         nextStep.warnedMid = true;
         playBeeps(2);
-        speakText(`Over 100 meter ${info.text.toLowerCase()}`);
+        speakText(`Over 100 meter ${label.toLowerCase()}`);
       } else if (dist <= 300 && dist > 110 && !nextStep.warnedFar) {
         nextStep.warnedFar = true;
         playBeeps(1);
       }
 
-      // Als we heel dicht bij de afslag waren en weer verder weg raken, nieuwe route ophalen voor de volgende stap
       if (nextStep.warnedNow && dist > 55) {
         calculateRoute(true);
       }
     }
 
-    // 10. Bedieningsknoppen
+    // 12. Bedieningsknoppen
     modeCarBtn.addEventListener('click', () => {
       travelMode = 'driving';
       modeCarBtn.classList.add('active');
@@ -948,7 +1311,7 @@
     });
 
     document.getElementById('startNavBtn').addEventListener('click', () => {
-      initAudio(); // Activeer geluid door deze directe tik van de gebruiker
+      initAudio();
       isNavigating = true;
       document.body.classList.add('navigating');
       set3DMode(true);
@@ -973,6 +1336,7 @@
       if (map.getLayer('route-line')) map.removeLayer('route-line');
       if (map.getSource('route')) map.removeSource('route');
       destCoords = null;
+      lastRouteGeoJson = null;
       routeSteps = [];
       set3DMode(false);
     });
