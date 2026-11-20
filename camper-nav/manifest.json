@@ -2,15 +2,15 @@
   "name": "Camper Nav",
   "short_name": "Camper Nav",
   "description": "Minimalistische navigatie voor de e-NV200",
-  "start_url": "./index.html",
+  "start_url": "./index.html?v=4",
   "scope": "./",
   "display": "standalone",
-  "background_color": "#e5e7eb",
+  "background_color": "#0f172a",
   "theme_color": "#0f172a",
   "orientation": "portrait",
   "icons": [
     {
-      "src": "../hub-icon.png",
+      "src": "camper-nav.png?v=4",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any maskable"
