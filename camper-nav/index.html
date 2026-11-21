@@ -9,9 +9,9 @@
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="theme-color" content="#18181b" />
 
-  <link rel="manifest" href="manifest.json?v=6" />
-  <link rel="icon" type="image/png" sizes="512x512" href="camper-nav.png?v=6" />
-  <link rel="apple-touch-icon" href="camper-nav.png?v=6" />
+  <link rel="manifest" href="manifest.json?v=7" />
+  <link rel="icon" type="image/png" sizes="512x512" href="camper-nav.png?v=7" />
+  <link rel="apple-touch-icon" href="camper-nav.png?v=7" />
 
   <!-- MapLibre GL JS (3D Vectorkaart Engine) -->
   <link href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css" rel="stylesheet" />
@@ -429,8 +429,10 @@
       cursor: pointer;
     }
     .charger-pin.chademo {
+      width: 30px;
+      height: 30px;
       border-color: #38bdf8;
-      border-width: 2px;
+      border-width: 2.2px;
     }
 
     .maplibregl-popup-content {
@@ -632,7 +634,7 @@
 
     map.on('load', () => {
       setupMapLayers();
-      fetchChargersSilently();
+      fetchChargersSilently(true);
       loadFavorites();
     });
 
@@ -824,29 +826,45 @@
         updateUserPosition(pos);
         updateAutoTheme();
         map.jumpTo({ center: [pos.coords.longitude, pos.coords.latitude], zoom: 13 });
+        fetchChargersSilently(true);
       }, () => {}, { enableHighAccuracy: true });
     }
 
-    // 6. Automatisch laadpalen op de kaart (met strakke monochrome SVG-stekker/bliksem)
+    // 6. Automatisch laadpalen op de kaart
+    // - In planstand (stilstaan): alle laadpalen (groen AC + blauw CHAdeMO) binnen ~10 km
+    // - Tijdens rijden (navigeren): uitsluitend blauwe CHAdeMO-snelladers binnen ~25 km
     let chargerMarkers = [];
     let lastChargerFetchCenter = null;
+    let lastChargerFetchNavState = null;
 
-    async function fetchChargersSilently() {
-      if (map.getZoom() < 11.5) return;
+    async function fetchChargersSilently(forceRefresh = false) {
+      if (!isNavigating && map.getZoom() < 11.5) return;
 
       const center = map.getCenter();
-      if (lastChargerFetchCenter && distanceMeters([center.lng, center.lat], lastChargerFetchCenter) < 4000) {
+      const thresholdMeters = isNavigating ? 10000 : 4000;
+
+      if (!forceRefresh &&
+          lastChargerFetchNavState === isNavigating &&
+          lastChargerFetchCenter &&
+          distanceMeters([center.lng, center.lat], lastChargerFetchCenter) < thresholdMeters) {
         return;
       }
-      lastChargerFetchCenter = [center.lng, center.lat];
 
-      const south = (center.lat - 0.09).toFixed(4);
-      const west = (center.lng - 0.14).toFixed(4);
-      const north = (center.lat + 0.09).toFixed(4);
-      const east = (center.lng + 0.14).toFixed(4);
+      lastChargerFetchCenter = [center.lng, center.lat];
+      lastChargerFetchNavState = isNavigating;
+
+      const latDelta = isNavigating ? 0.22 : 0.09; // ~25 km tijdens rijden, ~10 km bij stilstaan
+      const lonDelta = isNavigating ? 0.35 : 0.14;
+
+      const south = (center.lat - latDelta).toFixed(4);
+      const west = (center.lng - lonDelta).toFixed(4);
+      const north = (center.lat + latDelta).toFixed(4);
+      const east = (center.lng + lonDelta).toFixed(4);
       const bbox = `${south},${west},${north},${east}`;
 
-      const query = `[out:json][timeout:12];(node["amenity"="charging_station"](${bbox});way["amenity"="charging_station"](${bbox}););out center 100;`;
+      const query = isNavigating
+        ? `[out:json][timeout:12];(node["amenity"="charging_station"]["socket:chademo"](${bbox});way["amenity"="charging_station"]["socket:chademo"](${bbox}););out center 100;`
+        : `[out:json][timeout:12];(node["amenity"="charging_station"](${bbox});way["amenity"="charging_station"](${bbox}););out center 100;`;
 
       try {
         const res = await fetch('https://overpass-api.de/api/interpreter', {
@@ -865,19 +883,27 @@
           if (!lat || !lon) return;
 
           const tags = el.tags || {};
-          const hasChademo = Boolean(tags['socket:chademo']);
+          const hasChademo = Boolean(tags['socket:chademo'] && tags['socket:chademo'] !== 'no');
+
+          // Extra zekerheid: tijdens rijden alleen CHAdeMO tonen
+          if (isNavigating && !hasChademo) return;
+
           const name = tags.name || tags.operator || (hasChademo ? 'CHAdeMO Snellader' : 'Laadpaal');
+          const power = hasChademo
+            ? (tags['socket:chademo:output'] || '')
+            : (tags['socket:type2:output'] || '');
+          const subLabel = (hasChademo ? 'CHAdeMO snellader' : 'Reguliere laadpaal') + (power ? ` • ${power}` : '');
 
           const pin = document.createElement('div');
           pin.className = hasChademo ? 'charger-pin chademo' : 'charger-pin';
           pin.innerHTML = hasChademo
-            ? `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#38bdf8" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>`
+            ? `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#38bdf8" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>`
             : `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#4ade80" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22v-5"/><path d="M9 8V2"/><path d="M15 8V2"/><path d="M18 8v5a4 4 0 0 1-4 4h-4a4 4 0 0 1-4-4V8Z"/></svg>`;
 
           const safeName = name.replace(/'/g, "\\'");
           const popupHtml = `
             <strong>${name}</strong><br>
-            <small style="color:#a1a1aa">${hasChademo ? 'CHAdeMO snellader' : 'Reguliere laadpaal'}</small>
+            <small style="color:#a1a1aa">${subLabel}</small>
             <button class="popup-route-btn" onclick="selectDestination(${lon}, ${lat}, '${safeName}')">
               Route hierheen
             </button>
@@ -894,7 +920,7 @@
       } catch (e) {}
     }
 
-    map.on('moveend', fetchChargersSilently);
+    map.on('moveend', () => fetchChargersSilently(false));
 
     // 7. Favorieten geïntegreerd in het zoekveld (Japandi stijl)
     const favList = document.getElementById('favList');
@@ -1237,6 +1263,7 @@
       map.easeTo({ pitch: 60, duration: 600 });
       requestWakeLock();
       startTracking(true);
+      fetchChargersSilently(true);
       playBeeps(1);
     });
 
@@ -1245,6 +1272,7 @@
       document.body.classList.remove('navigating');
       map.easeTo({ pitch: 0, padding: { top: 0, bottom: 0, left: 0, right: 0 }, duration: 600 });
       if (wakeLock) { wakeLock.release(); wakeLock = null; }
+      fetchChargersSilently(true);
     });
 
     document.getElementById('closePlanBtn').addEventListener('click', () => {
@@ -1258,6 +1286,7 @@
       lastRouteGeoJson = null;
       routeSteps = [];
       map.easeTo({ pitch: 0, duration: 500 });
+      fetchChargersSilently(true);
     });
   </script>
 </body>
