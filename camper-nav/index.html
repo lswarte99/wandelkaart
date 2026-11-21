@@ -9,9 +9,9 @@
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="theme-color" content="#18181b" />
 
-  <link rel="manifest" href="manifest.json?v=7" />
-  <link rel="icon" type="image/png" sizes="512x512" href="camper-nav.png?v=7" />
-  <link rel="apple-touch-icon" href="camper-nav.png?v=7" />
+  <link rel="manifest" href="manifest.json?v=8" />
+  <link rel="icon" type="image/png" sizes="512x512" href="camper-nav.png?v=8" />
+  <link rel="apple-touch-icon" href="camper-nav.png?v=8" />
 
   <!-- MapLibre GL JS (3D Vectorkaart Engine) -->
   <link href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css" rel="stylesheet" />
@@ -40,7 +40,24 @@
       height: 100%;
     }
 
-    /* Bovenbalk: Eén rustige zoekbalk (alleen in planstand) */
+    /* MapLibre bronvermelding subtiel & compact zonder witte rand achter rijbalk */
+    .maplibregl-ctrl-attrib.maplibregl-compact {
+      background-color: rgba(24, 24, 27, 0.75) !important;
+      color: #a1a1aa !important;
+      margin: 0 8px 6px 0 !important;
+    }
+    .maplibregl-ctrl-attrib.maplibregl-compact a {
+      color: #d4d4d8 !important;
+    }
+    .maplibregl-ctrl-attrib-button {
+      background-color: rgba(24, 24, 27, 0.85) !important;
+      filter: invert(1);
+    }
+    body.navigating .maplibregl-ctrl-bottom-right {
+      display: none !important;
+    }
+
+    /* Bovenbalk: Eén rustige zoekbalk met wis-knop (alleen in planstand) */
     .search-container {
       position: absolute;
       top: 14px;
@@ -61,6 +78,7 @@
 
     .search-box {
       display: flex;
+      align-items: center;
       background: rgba(255, 255, 255, 0.96);
       border-radius: 14px;
       box-shadow: 0 4px 16px rgba(0, 0, 0, 0.14);
@@ -77,7 +95,7 @@
       flex: 1;
       min-width: 0;
       border: none;
-      padding: 13px 16px;
+      padding: 13px 10px 13px 16px;
       font-size: 16px;
       outline: none;
       background: transparent;
@@ -88,17 +106,28 @@
       color: #f4f4f5;
     }
 
-    .search-box button {
+    .clear-input-btn {
+      background: transparent;
+      border: none;
+      color: #71717a;
+      font-size: 18px;
+      padding: 0 10px;
+      cursor: pointer;
+      display: none;
+    }
+
+    .search-box .go-btn {
       border: none;
       background: #18181b;
       color: #ffffff;
       padding: 0 18px;
+      height: 48px;
       font-weight: 600;
       font-size: 15px;
       cursor: pointer;
     }
 
-    body.dark-mode .search-box button {
+    body.dark-mode .search-box .go-btn {
       background: #27272a;
       border-left: 1px solid rgba(255, 255, 255, 0.08);
     }
@@ -108,7 +137,7 @@
       border-radius: 14px;
       box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
       border: 1px solid rgba(0, 0, 0, 0.08);
-      max-height: 260px;
+      max-height: 270px;
       overflow-y: auto;
       display: none;
     }
@@ -200,15 +229,15 @@
     }
 
     .turn-icon-box {
-      width: 52px;
-      height: 52px;
+      width: 54px;
+      height: 54px;
       display: flex;
       align-items: center;
       justify-content: center;
       flex-shrink: 0;
     }
 
-    /* Rechter zijknoppen: Japandi stijl (wit icoon op mat antraciet) */
+    /* Rechter zijknoppen: Snelheidsbord (tijdens rijden), Geluid (altijd) & Vizier (planstand) */
     .side-controls {
       position: absolute;
       right: 14px;
@@ -216,7 +245,28 @@
       z-index: 1000;
       display: flex;
       flex-direction: column;
+      align-items: center;
       gap: 10px;
+    }
+
+    .speed-sign {
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      background: #ffffff;
+      border: 4.5px solid #dc2626;
+      color: #09090b;
+      font-weight: 800;
+      font-size: 16px;
+      letter-spacing: -0.5px;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.32);
+    }
+
+    body.navigating .speed-sign.has-speed {
+      display: flex;
     }
 
     .ctrl-btn {
@@ -231,7 +281,6 @@
       justify-content: center;
       color: #ffffff;
       cursor: pointer;
-      transition: opacity 0.2s ease, transform 0.2s ease;
     }
 
     .ctrl-btn.muted {
@@ -242,7 +291,6 @@
       border-color: #38bdf8;
     }
 
-    /* Vizierknop verbergen tijdens rijden */
     body.navigating #gpsBtn {
       display: none;
     }
@@ -470,11 +518,12 @@
 
   <div id="map"></div>
 
-  <!-- Eén rustige zoekbalk met uitklapbare favorieten (verdwijnt tijdens rijden) -->
+  <!-- Eén rustige zoekbalk met wis-kruisje & uitklapbare favorieten (verdwijnt tijdens rijden) -->
   <div class="search-container">
     <div class="search-box">
       <input type="text" id="searchInput" placeholder="Waar gaan we naartoe?" autocomplete="off" />
-      <button id="searchBtn">Zoek</button>
+      <button type="button" id="clearInputBtn" class="clear-input-btn" aria-label="Wissen">✕</button>
+      <button type="button" id="searchBtn" class="go-btn">Zoek</button>
     </div>
     <div id="searchResults" class="dropdown-list"></div>
     <div id="favList" class="dropdown-list"></div>
@@ -489,8 +538,9 @@
     <div id="turnIconBox" class="turn-icon-box"></div>
   </div>
 
-  <!-- Rechts: Geluid (altijd) + Vizier (alleen in planstand), wit op mat antraciet -->
+  <!-- Rechts: Maximumsnelheid (tijdens rijden), Geluid (altijd) & Vizier (planstand) -->
   <div class="side-controls">
+    <div id="speedSign" class="speed-sign" title="Maximumsnelheid">--</div>
     <button id="audioBtn" class="ctrl-btn" title="Geluid: Piepjes / Spraak / Uit" aria-label="Geluid"></button>
     <button id="gpsBtn" class="ctrl-btn" title="Centreer op mijn locatie" aria-label="Mijn locatie">
       <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
@@ -571,21 +621,27 @@
     let lastRecalcTime = 0;
     let lastRouteGeoJson = null;
 
+    // Onthoudt welke waarschuwingen al zijn uitgesproken/gepiept per afslag (voorkomt dubbele meldingen!)
+    const announcedWarnings = new Set();
+
     let currentDarkState = isNightAtCoords(userCoords[1], userCoords[0]);
     const STYLES = {
       light: 'https://tiles.openfreemap.org/styles/bright',
       dark: 'https://tiles.openfreemap.org/styles/dark'
     };
 
-    // 2. Kaart initialiseren
+    // 2. Kaart initialiseren (met compacte, ingeklapte bronvermelding)
     const map = new maplibregl.Map({
       container: 'map',
       style: currentDarkState ? STYLES.dark : STYLES.light,
       center: userCoords,
       zoom: 12,
       pitch: 0,
-      bearing: 0
+      bearing: 0,
+      attributionControl: false
     });
+
+    map.addControl(new maplibregl.AttributionControl({ compact: true }), 'bottom-right');
 
     function setupMapLayers() {
       const layers = map.getStyle().layers;
@@ -730,7 +786,42 @@
       return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
     }
 
-    // 5. GPS Tracking
+    // 5. Maximumsnelheid ophalen uit OpenStreetMap (tijdens rijden)
+    const speedSign = document.getElementById('speedSign');
+    let lastSpeedCheckCoords = null;
+    let lastSpeedCheckTime = 0;
+
+    async function updateMaxSpeedIfNeeded() {
+      if (!isNavigating || !userCoords) return;
+      const now = Date.now();
+      if (now - lastSpeedCheckTime < 12000) return;
+      if (lastSpeedCheckCoords && distanceMeters(userCoords, lastSpeedCheckCoords) < 150) return;
+
+      lastSpeedCheckTime = now;
+      lastSpeedCheckCoords = [...userCoords];
+
+      const query = `[out:json][timeout:6];way(around:28,${userCoords[1]},${userCoords[0]})["highway"]["maxspeed"];out tags 1;`;
+      try {
+        const res = await fetch('https://overpass-api.de/api/interpreter', {
+          method: 'POST',
+          body: 'data=' + encodeURIComponent(query)
+        });
+        if (!res.ok) return;
+        const data = await res.json();
+        if (data.elements && data.elements.length && data.elements[0].tags && data.elements[0].tags.maxspeed) {
+          const raw = data.elements[0].tags.maxspeed;
+          const num = parseInt(raw, 10);
+          if (!isNaN(num) && num >= 15 && num <= 130) {
+            speedSign.textContent = num;
+            speedSign.classList.add('has-speed');
+            return;
+          }
+        }
+        speedSign.classList.remove('has-speed');
+      } catch (e) {}
+    }
+
+    // 6. GPS Tracking
     const gpsBtn = document.getElementById('gpsBtn');
 
     async function requestWakeLock() {
@@ -776,10 +867,13 @@
         map.easeTo(camOptions);
       }
 
-      if (isNavigating && destCoords) {
-        checkUpcomingManeuver();
-        if (Date.now() - lastRecalcTime > 20000) {
-          calculateRoute(true);
+      if (isNavigating) {
+        updateMaxSpeedIfNeeded();
+        if (destCoords) {
+          checkUpcomingManeuver();
+          if (Date.now() - lastRecalcTime > 20000) {
+            calculateRoute(true);
+          }
         }
       }
     }
@@ -830,9 +924,7 @@
       }, () => {}, { enableHighAccuracy: true });
     }
 
-    // 6. Automatisch laadpalen op de kaart
-    // - In planstand (stilstaan): alle laadpalen (groen AC + blauw CHAdeMO) binnen ~10 km
-    // - Tijdens rijden (navigeren): uitsluitend blauwe CHAdeMO-snelladers binnen ~25 km
+    // 7. Automatisch laadpalen op de kaart
     let chargerMarkers = [];
     let lastChargerFetchCenter = null;
     let lastChargerFetchNavState = null;
@@ -853,7 +945,7 @@
       lastChargerFetchCenter = [center.lng, center.lat];
       lastChargerFetchNavState = isNavigating;
 
-      const latDelta = isNavigating ? 0.22 : 0.09; // ~25 km tijdens rijden, ~10 km bij stilstaan
+      const latDelta = isNavigating ? 0.22 : 0.09;
       const lonDelta = isNavigating ? 0.35 : 0.14;
 
       const south = (center.lat - latDelta).toFixed(4);
@@ -885,7 +977,6 @@
           const tags = el.tags || {};
           const hasChademo = Boolean(tags['socket:chademo'] && tags['socket:chademo'] !== 'no');
 
-          // Extra zekerheid: tijdens rijden alleen CHAdeMO tonen
           if (isNavigating && !hasChademo) return;
 
           const name = tags.name || tags.operator || (hasChademo ? 'CHAdeMO Snellader' : 'Laadpaal');
@@ -922,7 +1013,7 @@
 
     map.on('moveend', () => fetchChargersSilently(false));
 
-    // 7. Favorieten geïntegreerd in het zoekveld (Japandi stijl)
+    // 8. Favorieten geïntegreerd in het zoekveld (altijd betrouwbaar ingeladen)
     const favList = document.getElementById('favList');
     const saveFavBtn = document.getElementById('saveFavBtn');
     const heartIcon = document.getElementById('heartIcon');
@@ -931,8 +1022,11 @@
     async function loadFavorites() {
       let fileFavs = [];
       try {
-        const res = await fetch('favorieten.json?v=' + Date.now());
-        if (res.ok) fileFavs = await res.json();
+        const res = await fetch('favorieten.json?t=' + Date.now(), { cache: 'no-store' });
+        if (res.ok) {
+          const parsed = await res.json();
+          if (Array.isArray(parsed)) fileFavs = parsed;
+        }
       } catch (e) {}
 
       let localFavs = [];
@@ -949,7 +1043,10 @@
 
     function renderFavorites() {
       favList.innerHTML = '';
-      if (!favorites.length) return;
+      if (!favorites.length) {
+        favList.innerHTML = '<div class="dropdown-item" style="color:#71717a;">Nog geen favorieten beschikbaar</div>';
+        return;
+      }
 
       favorites.forEach((fav) => {
         const div = document.createElement('div');
@@ -995,25 +1092,41 @@
       loadFavorites();
     });
 
-    // 8. Zoekbalk (toont favorieten bij lege tik, zoekresultaten bij typen)
+    // 9. Zoekbalk + wis-knop
     const searchInput = document.getElementById('searchInput');
+    const clearInputBtn = document.getElementById('clearInputBtn');
     const searchBtn = document.getElementById('searchBtn');
     const searchResults = document.getElementById('searchResults');
 
-    searchInput.addEventListener('focus', () => {
-      if (!searchInput.value.trim() && favorites.length) {
+    function updateClearButton() {
+      clearInputBtn.style.display = searchInput.value.length > 0 ? 'block' : 'none';
+    }
+
+    searchInput.addEventListener('focus', async () => {
+      updateClearButton();
+      if (!favorites.length) await loadFavorites();
+      if (!searchInput.value.trim()) {
         searchResults.style.display = 'none';
         favList.style.display = 'block';
       }
     });
 
     searchInput.addEventListener('input', () => {
+      updateClearButton();
       if (!searchInput.value.trim()) {
         searchResults.style.display = 'none';
-        if (favorites.length) favList.style.display = 'block';
+        favList.style.display = 'block';
       } else {
         favList.style.display = 'none';
       }
+    });
+
+    clearInputBtn.addEventListener('click', () => {
+      searchInput.value = '';
+      updateClearButton();
+      searchResults.style.display = 'none';
+      favList.style.display = 'block';
+      searchInput.focus();
     });
 
     map.on('click', () => {
@@ -1025,7 +1138,7 @@
     async function performSearch() {
       const q = searchInput.value.trim();
       if (!q) {
-        if (favorites.length) favList.style.display = 'block';
+        favList.style.display = 'block';
         return;
       }
       favList.style.display = 'none';
@@ -1065,7 +1178,7 @@
       if (e.key === 'Enter') performSearch();
     });
 
-    // 9. Routeberekening (altijd Camper / auto)
+    // 10. Routeberekening
     const planPanel = document.getElementById('planPanel');
     const planEta = document.getElementById('planEta');
     const planSub = document.getElementById('planSub');
@@ -1086,6 +1199,7 @@
       searchResults.style.display = 'none';
       destCoords = [lng, lat];
       destName = label;
+      announcedWarnings.clear();
       heartIcon.setAttribute('fill', 'none');
       planPanel.style.display = 'flex';
       planEta.textContent = '--:--';
@@ -1150,16 +1264,21 @@
         if (route.legs && route.legs[0] && route.legs[0].steps) {
           routeSteps = route.legs[0].steps
             .filter(isRealManeuver)
-            .map(s => ({
-              location: s.maneuver.location,
-              type: s.maneuver.type,
-              modifier: s.maneuver.modifier || '',
-              exit: s.maneuver.exit || null,
-              name: s.name || '',
-              warnedFar: false,
-              warnedMid: false,
-              warnedNow: false
-            }));
+            .map(s => {
+              const loc = s.maneuver.location;
+              // Unieke sleutel per kruispunt zodat herberekening geen dubbele piepjes veroorzaakt
+              const key = `${loc[0].toFixed(4)},${loc[1].toFixed(4)}_${s.maneuver.type}`;
+              return {
+                key,
+                location: loc,
+                type: s.maneuver.type,
+                modifier: s.maneuver.modifier || '',
+                exit: s.maneuver.exit || null,
+                bearingBefore: s.maneuver.bearing_before,
+                bearingAfter: s.maneuver.bearing_after,
+                name: s.name || ''
+              };
+            });
           checkUpcomingManeuver();
         }
 
@@ -1173,14 +1292,44 @@
       } catch (e) {}
     }
 
-    // 10. Witte SVG-pijlen & Rotonde-afslagnummer + 1-2-3 piepjes
+    // 11. Witte SVG-pijlen & Rotonde-icoon met uitrij-streepje op de juiste klokpositie
     const turnIconBox = document.getElementById('turnIconBox');
     const turnDist = document.getElementById('turnDist');
     const turnStreet = document.getElementById('turnStreet');
 
     function getDutchOrdinal(n) {
-      const ordinals = { 1: 'eerste', 2: 'tweede', 3: 'derde', 4: 'vierde', 5: 'vijfde' };
+      const ordinals = { 1: 'eerste', 2: 'tweede', 3: 'derde', 4: 'vierde', 5: 'vijfde', 6: 'zesde' };
       return ordinals[n] || `${n}e`;
+    }
+
+    function buildRoundaboutSvg(step) {
+      const exitNum = step.exit || '';
+      // Bepaal de klokhoek van de afslag (0° = 12 uur / rechtdoor, +90° = 3 uur / rechts, -90° = 9 uur / links)
+      let turnAngle = 0;
+      if (typeof step.bearingBefore === 'number' && typeof step.bearingAfter === 'number') {
+        turnAngle = ((step.bearingAfter - step.bearingBefore + 540) % 360) - 180;
+      } else if (step.exit === 1) {
+        turnAngle = 90;
+      } else if (step.exit === 3) {
+        turnAngle = -90;
+      }
+
+      const rad = (turnAngle - 90) * (Math.PI / 180);
+      const rInner = 16;
+      const rOuter = 23;
+      const x1 = (24 + rInner * Math.cos(rad)).toFixed(1);
+      const y1 = (24 + rInner * Math.sin(rad)).toFixed(1);
+      const x2 = (24 + rOuter * Math.cos(rad)).toFixed(1);
+      const y2 = (24 + rOuter * Math.sin(rad)).toFixed(1);
+
+      return `<svg width="50" height="50" viewBox="0 0 48 48">
+        <circle cx="24" cy="24" r="16" fill="none" stroke="#ffffff" stroke-width="3.8"/>
+        <!-- Aanrijweg onderaan (6 uur) -->
+        <line x1="24" y1="40" x2="24" y2="47" stroke="#ffffff" stroke-width="3.8" stroke-linecap="round"/>
+        <!-- Uitrijweg op exacte klokpositie van de afslag -->
+        <line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="#ffffff" stroke-width="4.2" stroke-linecap="round"/>
+        <text x="24" y="30" text-anchor="middle" fill="#ffffff" font-size="18" font-weight="800" font-family="sans-serif">${exitNum}</text>
+      </svg>`;
     }
 
     function buildTurnSvg(step) {
@@ -1191,12 +1340,7 @@
         </svg>`;
       }
       if (step.type === 'roundabout' || step.type === 'rotary') {
-        const exitNum = step.exit || '';
-        return `<svg width="48" height="48" viewBox="0 0 48 48">
-          <circle cx="24" cy="24" r="17" fill="none" stroke="#ffffff" stroke-width="4"/>
-          <line x1="24" y1="41" x2="24" y2="47" stroke="#ffffff" stroke-width="4" stroke-linecap="round"/>
-          <text x="24" y="30" text-anchor="middle" fill="#ffffff" font-size="19" font-weight="800" font-family="sans-serif">${exitNum}</text>
-        </svg>`;
+        return buildRoundaboutSvg(step);
       }
       if (m.includes('left')) {
         return `<svg width="46" height="46" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round">
@@ -1237,25 +1381,33 @@
 
       if (!isNavigating) return;
 
-      if (dist <= 35 && !nextStep.warnedNow) {
-        nextStep.warnedNow = true;
+      const farKey = `${nextStep.key}_far`;
+      const midKey = `${nextStep.key}_mid`;
+      const nowKey = `${nextStep.key}_now`;
+
+      if (dist <= 35 && !announcedWarnings.has(nowKey)) {
+        announcedWarnings.add(nowKey);
+        announcedWarnings.add(midKey);
+        announcedWarnings.add(farKey);
         playBeeps(3);
         speakText(`Nu ${label.toLowerCase()}`);
-      } else if (dist <= 110 && dist > 35 && !nextStep.warnedMid) {
-        nextStep.warnedMid = true;
+      } else if (dist <= 110 && dist > 35 && !announcedWarnings.has(midKey)) {
+        announcedWarnings.add(midKey);
+        announcedWarnings.add(farKey);
         playBeeps(2);
         speakText(`Over 100 meter ${label.toLowerCase()}`);
-      } else if (dist <= 300 && dist > 110 && !nextStep.warnedFar) {
-        nextStep.warnedFar = true;
+      } else if (dist <= 300 && dist > 110 && !announcedWarnings.has(farKey)) {
+        announcedWarnings.add(farKey);
         playBeeps(1);
       }
 
-      if (nextStep.warnedNow && dist > 55) {
+      // Zodra we voorbij het kruispunt zijn, direct nieuwe route-stap ophalen
+      if (announcedWarnings.has(nowKey) && dist > 45) {
         calculateRoute(true);
       }
     }
 
-    // 11. Bedieningsknoppen
+    // 12. Bedieningsknoppen
     document.getElementById('startNavBtn').addEventListener('click', () => {
       initAudio();
       isNavigating = true;
@@ -1264,12 +1416,14 @@
       requestWakeLock();
       startTracking(true);
       fetchChargersSilently(true);
+      updateMaxSpeedIfNeeded();
       playBeeps(1);
     });
 
     document.getElementById('stopNavBtn').addEventListener('click', () => {
       isNavigating = false;
       document.body.classList.remove('navigating');
+      speedSign.classList.remove('has-speed');
       map.easeTo({ pitch: 0, padding: { top: 0, bottom: 0, left: 0, right: 0 }, duration: 600 });
       if (wakeLock) { wakeLock.release(); wakeLock = null; }
       fetchChargersSilently(true);
@@ -1278,6 +1432,7 @@
     document.getElementById('closePlanBtn').addEventListener('click', () => {
       isNavigating = false;
       document.body.classList.remove('navigating');
+      speedSign.classList.remove('has-speed');
       planPanel.style.display = 'none';
       if (destMarker) { destMarker.remove(); destMarker = null; }
       if (map.getLayer('route-line')) map.removeLayer('route-line');
@@ -1285,6 +1440,7 @@
       destCoords = null;
       lastRouteGeoJson = null;
       routeSteps = [];
+      announcedWarnings.clear();
       map.easeTo({ pitch: 0, duration: 500 });
       fetchChargersSilently(true);
     });
