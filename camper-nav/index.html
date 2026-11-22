@@ -9,9 +9,9 @@
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="theme-color" content="#18181b" />
 
-  <link rel="manifest" href="manifest.json?v=9" />
-  <link rel="icon" type="image/png" sizes="512x512" href="camper-nav.png?v=9" />
-  <link rel="apple-touch-icon" href="camper-nav.png?v=9" />
+  <link rel="manifest" href="manifest.json?v=10" />
+  <link rel="icon" type="image/png" sizes="512x512" href="camper-nav.png?v=10" />
+  <link rel="apple-touch-icon" href="camper-nav.png?v=10" />
 
   <!-- MapLibre GL JS (3D Vectorkaart Engine) -->
   <link href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css" rel="stylesheet" />
@@ -238,8 +238,8 @@
     }
 
     .turn-icon-box {
-      width: 54px;
-      height: 54px;
+      width: 56px;
+      height: 56px;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -562,7 +562,7 @@
     </button>
   </div>
 
-  <!-- Slank Onderpaneel vóór vertrek -->
+  <!-- Slank Onderpaneel vóór vertrek (met stoere ster voor favorieten) -->
   <div id="planPanel" class="plan-panel">
     <div class="plan-left">
       <div id="planEta" class="plan-eta">--:--</div>
@@ -570,8 +570,8 @@
     </div>
     <div class="plan-right">
       <button id="saveFavBtn" class="icon-circle-btn" title="Opslaan als favoriet" aria-label="Opslaan als favoriet">
-        <svg id="heartIcon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+        <svg id="starIcon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round">
+          <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
         </svg>
       </button>
       <button id="closePlanBtn" class="icon-circle-btn" title="Sluiten" aria-label="Sluiten">
@@ -803,7 +803,7 @@
       return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
     }
 
-    // 5. Maximumsnelheid ophalen uit OpenStreetMap (tijdens rijden)
+    // 5. Maximumsnelheid ophalen uit OpenStreetMap (strak op hoofdrijbaan binnen 15 m, geen ventwegen)
     const speedSign = document.getElementById('speedSign');
     let lastSpeedCheckCoords = null;
     let lastSpeedCheckTime = 0;
@@ -811,13 +811,13 @@
     async function updateMaxSpeedIfNeeded() {
       if (!isNavigating || !userCoords) return;
       const now = Date.now();
-      if (now - lastSpeedCheckTime < 12000) return;
-      if (lastSpeedCheckCoords && distanceMeters(userCoords, lastSpeedCheckCoords) < 150) return;
+      if (now - lastSpeedCheckTime < 9000) return;
+      if (lastSpeedCheckCoords && distanceMeters(userCoords, lastSpeedCheckCoords) < 90) return;
 
       lastSpeedCheckTime = now;
       lastSpeedCheckCoords = [...userCoords];
 
-      const query = `[out:json][timeout:6];way(around:28,${userCoords[1]},${userCoords[0]})["highway"]["maxspeed"];out tags 1;`;
+      const query = `[out:json][timeout:6];way(around:15,${userCoords[1]},${userCoords[0]})["highway"~"^(motorway|trunk|primary|secondary|tertiary|unclassified|residential)$"]["maxspeed"];out tags 3;`;
       try {
         const res = await fetch('https://overpass-api.de/api/interpreter', {
           method: 'POST',
@@ -825,7 +825,10 @@
         });
         if (!res.ok) return;
         const data = await res.json();
-        if (data.elements && data.elements.length && data.elements[0].tags && data.elements[0].tags.maxspeed) {
+        if (data.elements && data.elements.length) {
+          // Kies de hoogste wegklasse (voorkomt dat een parallelweg van 50 km/u een 80-weg overschrijft)
+          const rank = { motorway: 1, trunk: 2, primary: 3, secondary: 4, tertiary: 5, unclassified: 6, residential: 7 };
+          data.elements.sort((a, b) => (rank[a.tags.highway] || 9) - (rank[b.tags.highway] || 9));
           const raw = data.elements[0].tags.maxspeed;
           const num = parseInt(raw, 10);
           if (!isNaN(num) && num >= 15 && num <= 130) {
@@ -838,8 +841,13 @@
       } catch (e) {}
     }
 
-    // 6. GPS Tracking
+    // 6. GPS Tracking (80% route vóór je uit, 20% achter je door dynamische onderste padding)
     const gpsBtn = document.getElementById('gpsBtn');
+
+    function getNavPadding() {
+      const bottomPad = Math.round(window.innerHeight * 0.56);
+      return { top: 90, bottom: bottomPad, left: 0, right: 0 };
+    }
 
     async function requestWakeLock() {
       try {
@@ -874,7 +882,7 @@
         if (isNavigating) {
           camOptions.zoom = 16.5;
           camOptions.pitch = 60;
-          camOptions.padding = { top: 80, bottom: 200, left: 0, right: 0 };
+          camOptions.padding = getNavPadding();
           if (heading !== null && !isNaN(heading)) {
             camOptions.bearing = heading;
           }
@@ -904,7 +912,12 @@
           (pos) => {
             updateUserPosition(pos);
             if (centerNow) {
-              map.flyTo({ center: [pos.coords.longitude, pos.coords.latitude], zoom: 15 });
+              const opts = { center: [pos.coords.longitude, pos.coords.latitude], zoom: isNavigating ? 16.5 : 15 };
+              if (isNavigating) {
+                opts.pitch = 60;
+                opts.padding = getNavPadding();
+              }
+              map.flyTo(opts);
               centerNow = false;
             }
           },
@@ -912,7 +925,12 @@
           { enableHighAccuracy: true, maximumAge: 1000, timeout: 10000 }
         );
       } else if (userCoords && centerNow) {
-        map.flyTo({ center: userCoords, zoom: 15 });
+        const opts = { center: userCoords, zoom: isNavigating ? 16.5 : 15 };
+        if (isNavigating) {
+          opts.pitch = 60;
+          opts.padding = getNavPadding();
+        }
+        map.flyTo(opts);
       }
     }
 
@@ -1030,10 +1048,10 @@
 
     map.on('moveend', () => fetchChargersSilently(false));
 
-    // 8. Favorieten geïntegreerd in het zoekveld (inclusief veilige terugval-lijst)
+    // 8. Favorieten geïntegreerd in het zoekveld (met stoere gevulde sterren)
     const favList = document.getElementById('favList');
     const saveFavBtn = document.getElementById('saveFavBtn');
-    const heartIcon = document.getElementById('heartIcon');
+    const starIcon = document.getElementById('starIcon');
     let favorites = [];
 
     const DEFAULT_FAVS = [
@@ -1082,7 +1100,7 @@
 
         const left = document.createElement('div');
         left.className = 'fav-row-left';
-        left.innerHTML = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg><span>${fav.naam}</span>`;
+        left.innerHTML = `<svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg><span>${fav.naam}</span>`;
         left.addEventListener('click', () => {
           favList.style.display = 'none';
           selectDestination(fav.lon, fav.lat, fav.naam);
@@ -1116,7 +1134,7 @@
       const localFavs = JSON.parse(localStorage.getItem('camper_nav_favs') || '[]');
       localFavs.push({ naam: customName.trim(), lat: destCoords[1], lon: destCoords[0] });
       localStorage.setItem('camper_nav_favs', JSON.stringify(localFavs));
-      heartIcon.setAttribute('fill', 'currentColor');
+      starIcon.setAttribute('fill', 'currentColor');
       loadFavorites();
     });
 
@@ -1206,7 +1224,7 @@
       if (e.key === 'Enter') performSearch();
     });
 
-    // 10. Routeberekening
+    // 10. Routeberekening + slimme filtering voor voorsorteerstroken vóór rotondes
     const planPanel = document.getElementById('planPanel');
     const planEta = document.getElementById('planEta');
     const planSub = document.getElementById('planSub');
@@ -1228,7 +1246,7 @@
       destCoords = [lng, lat];
       destName = label;
       announcedWarnings.clear();
-      heartIcon.setAttribute('fill', 'none');
+      starIcon.setAttribute('fill', 'none');
       planPanel.style.display = 'flex';
       planEta.textContent = '--:--';
       planSub.textContent = 'Aankomst berekenen...';
@@ -1260,11 +1278,15 @@
       }
     }
 
+    function isRoundaboutType(t) {
+      return t === 'roundabout' || t === 'rotary';
+    }
+
     function isRealManeuver(step) {
       const t = step.maneuver.type;
       const m = step.maneuver.modifier || '';
-      if (t === 'depart') return false;
-      if (t === 'arrive' || t === 'roundabout' || t === 'rotary' || t === 'fork' || t === 'off ramp') return true;
+      if (t === 'depart' || t === 'exit roundabout' || t === 'exit rotary') return false;
+      if (t === 'arrive' || isRoundaboutType(t) || t === 'fork' || t === 'off ramp') return true;
       if ((t === 'new name' || t === 'continue') && (m === '' || m === 'straight')) return false;
       if (m.includes('left') || m.includes('right') || m.includes('uturn')) return true;
       return false;
@@ -1290,22 +1312,45 @@
         driveEtaSub.textContent = `Nog ${eta.mins} min`;
 
         if (route.legs && route.legs[0] && route.legs[0].steps) {
-          routeSteps = route.legs[0].steps
-            .filter(isRealManeuver)
-            .map(s => {
-              const loc = s.maneuver.location;
-              const key = `${loc[0].toFixed(4)},${loc[1].toFixed(4)}_${s.maneuver.type}`;
-              return {
-                key,
-                location: loc,
-                type: s.maneuver.type,
-                modifier: s.maneuver.modifier || '',
-                exit: s.maneuver.exit || null,
-                bearingBefore: s.maneuver.bearing_before,
-                bearingAfter: s.maneuver.bearing_after,
-                name: s.name || ''
-              };
+          const rawSteps = route.legs[0].steps;
+          const processed = [];
+
+          for (let i = 0; i < rawSteps.length; i++) {
+            const s = rawSteps[i];
+            if (!isRealManeuver(s)) continue;
+
+            // Als een rotonde wordt voorafgegaan door een los voorsorteer- of fork-stapje binnen 40m, sla dat voorsorteerstapje over
+            if (!isRoundaboutType(s.maneuver.type) && s.maneuver.type !== 'arrive') {
+              const nextRoundabout = rawSteps.slice(i + 1, i + 3).find(ns => isRoundaboutType(ns.maneuver.type));
+              if (nextRoundabout && distanceMeters(s.maneuver.location, nextRoundabout.maneuver.location) < 42) {
+                continue;
+              }
+            }
+
+            // Zoek voor een rotonde de werkelijke uitrij-koers (exit roundabout) voor het pijltje op de klok
+            let exitBearingAfter = s.maneuver.bearing_after;
+            if (isRoundaboutType(s.maneuver.type)) {
+              const exitStep = rawSteps.slice(i + 1, i + 4).find(ns => ns.maneuver.type === 'exit roundabout' || ns.maneuver.type === 'exit rotary');
+              if (exitStep && typeof exitStep.maneuver.bearing_after === 'number') {
+                exitBearingAfter = exitStep.maneuver.bearing_after;
+              }
+            }
+
+            const loc = s.maneuver.location;
+            const key = `${loc[0].toFixed(4)},${loc[1].toFixed(4)}_${s.maneuver.type}`;
+            processed.push({
+              key,
+              location: loc,
+              type: s.maneuver.type,
+              modifier: s.maneuver.modifier || '',
+              exit: s.maneuver.exit || null,
+              bearingBefore: s.maneuver.bearing_before,
+              bearingAfter: exitBearingAfter,
+              name: s.name || ''
             });
+          }
+
+          routeSteps = processed;
           checkUpcomingManeuver();
         }
 
@@ -1319,7 +1364,7 @@
       } catch (e) {}
     }
 
-    // 11. Witte SVG-pijlen & Rotonde-icoon met uitrij-streepje op de juiste klokpositie
+    // 11. Witte SVG-pijlen & Rotonde-icoon met echt pijltje op de exacte klokpositie
     const turnIconBox = document.getElementById('turnIconBox');
     const turnDist = document.getElementById('turnDist');
     const turnStreet = document.getElementById('turnStreet');
@@ -1332,27 +1377,28 @@
     function buildRoundaboutSvg(step) {
       const exitNum = step.exit || '';
       let turnAngle = 0;
+
       if (typeof step.bearingBefore === 'number' && typeof step.bearingAfter === 'number') {
         turnAngle = ((step.bearingAfter - step.bearingBefore + 540) % 360) - 180;
       } else if (step.exit === 1) {
         turnAngle = 90;
       } else if (step.exit === 3) {
         turnAngle = -90;
+      } else if (step.exit >= 4) {
+        turnAngle = 180;
       }
 
-      const rad = (turnAngle - 90) * (Math.PI / 180);
-      const rInner = 16;
-      const rOuter = 23;
-      const x1 = (24 + rInner * Math.cos(rad)).toFixed(1);
-      const y1 = (24 + rInner * Math.sin(rad)).toFixed(1);
-      const x2 = (24 + rOuter * Math.cos(rad)).toFixed(1);
-      const y2 = (24 + rOuter * Math.sin(rad)).toFixed(1);
-
-      return `<svg width="50" height="50" viewBox="0 0 48 48">
-        <circle cx="24" cy="24" r="16" fill="none" stroke="#ffffff" stroke-width="3.8"/>
-        <line x1="24" y1="40" x2="24" y2="47" stroke="#ffffff" stroke-width="3.8" stroke-linecap="round"/>
-        <line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="#ffffff" stroke-width="4.2" stroke-linecap="round"/>
-        <text x="24" y="30" text-anchor="middle" fill="#ffffff" font-size="18" font-weight="800" font-family="sans-serif">${exitNum}</text>
+      // Draai het uitrij-pijltje exact naar turnAngle (0° = 12 uur, +90° = 3 uur, -90° = 9 uur, 180° = 6 uur)
+      return `<svg width="54" height="54" viewBox="0 0 56 56">
+        <circle cx="28" cy="28" r="15" fill="none" stroke="#ffffff" stroke-width="3.6"/>
+        <!-- Aanrijweg onderaan (6 uur) -->
+        <line x1="28" y1="43" x2="28" y2="52" stroke="#ffffff" stroke-width="3.6" stroke-linecap="round"/>
+        <!-- Uitrijweg met pijlpunt geroteerd naar de exacte uitrithoek -->
+        <g transform="rotate(${turnAngle.toFixed(1)} 28 28)">
+          <line x1="28" y1="13" x2="28" y2="4" stroke="#ffffff" stroke-width="3.6" stroke-linecap="round"/>
+          <polyline points="23.5,8.5 28,3.5 32.5,8.5" fill="none" stroke="#ffffff" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/>
+        </g>
+        <text x="28" y="34" text-anchor="middle" fill="#ffffff" font-size="17" font-weight="800" font-family="sans-serif">${exitNum}</text>
       </svg>`;
     }
 
@@ -1363,7 +1409,7 @@
           <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/>
         </svg>`;
       }
-      if (step.type === 'roundabout' || step.type === 'rotary') {
+      if (isRoundaboutType(step.type)) {
         return buildRoundaboutSvg(step);
       }
       if (m.includes('left')) {
@@ -1384,7 +1430,7 @@
     function getManeuverLabel(step) {
       const m = step.modifier;
       if (step.type === 'arrive') return 'Bestemming bereikt';
-      if (step.type === 'roundabout' || step.type === 'rotary') {
+      if (isRoundaboutType(step.type)) {
         return step.exit ? `Rotonde ${getDutchOrdinal(step.exit)} afslag` : 'Rotonde';
       }
       if (m.includes('left')) return 'Linksaf';
@@ -1435,7 +1481,7 @@
       initAudio();
       isNavigating = true;
       document.body.classList.add('navigating');
-      map.easeTo({ pitch: 60, duration: 600 });
+      map.easeTo({ pitch: 60, padding: getNavPadding(), duration: 600 });
       requestWakeLock();
       startTracking(true);
       fetchChargersSilently(true);
@@ -1464,7 +1510,7 @@
       lastRouteGeoJson = null;
       routeSteps = [];
       announcedWarnings.clear();
-      map.easeTo({ pitch: 0, duration: 500 });
+      map.easeTo({ pitch: 0, padding: { top: 0, bottom: 0, left: 0, right: 0 }, duration: 500 });
       fetchChargersSilently(true);
     });
   </script>
