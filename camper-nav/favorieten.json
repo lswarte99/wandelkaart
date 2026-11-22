@@ -1,13 +1,13 @@
 [
   {
     "naam": "Thuis (Julianadorp)",
-    "lat": 52.8935,
-    "lon": 4.7625
+    "lat": 52.8932060,
+    "lon": 4.7431722
   },
   {
     "naam": "Ouders",
-    "lat": 52.369252,
-    "lon": 4.889302
+    "lat": 52.9314735,
+    "lon": 4.7760308
   },
   {
     "naam": "Lijun",
@@ -16,7 +16,7 @@
   },
   {
     "naam": "Museum Het Schip (Amsterdam)",
-    "lat": 52.3911,
-    "lon": 4.8768
+    "lat": 52.3904885,
+    "lon": 4.8737264
   }
 ]
