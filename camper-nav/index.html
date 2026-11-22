@@ -9,9 +9,9 @@
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="theme-color" content="#18181b" />
 
-  <link rel="manifest" href="manifest.json?v=8" />
-  <link rel="icon" type="image/png" sizes="512x512" href="camper-nav.png?v=8" />
-  <link rel="apple-touch-icon" href="camper-nav.png?v=8" />
+  <link rel="manifest" href="manifest.json?v=9" />
+  <link rel="icon" type="image/png" sizes="512x512" href="camper-nav.png?v=9" />
+  <link rel="apple-touch-icon" href="camper-nav.png?v=9" />
 
   <!-- MapLibre GL JS (3D Vectorkaart Engine) -->
   <link href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css" rel="stylesheet" />
@@ -40,9 +40,9 @@
       height: 100%;
     }
 
-    /* MapLibre bronvermelding subtiel & compact zonder witte rand achter rijbalk */
+    /* MapLibre bronvermelding subtiel, ingeklapt & zonder focusring */
     .maplibregl-ctrl-attrib.maplibregl-compact {
-      background-color: rgba(24, 24, 27, 0.75) !important;
+      background-color: rgba(24, 24, 27, 0.78) !important;
       color: #a1a1aa !important;
       margin: 0 8px 6px 0 !important;
     }
@@ -53,9 +53,6 @@
       background-color: rgba(24, 24, 27, 0.85) !important;
       filter: invert(1);
     }
-    body.navigating .maplibregl-ctrl-bottom-right {
-      display: none !important;
-    }
     .maplibregl-ctrl-attrib-button:focus {
       outline: none !important;
     }
@@ -64,6 +61,9 @@
     }
     .maplibregl-ctrl-attrib.user-opened .maplibregl-ctrl-attrib-inner {
       display: block !important;
+    }
+    body.navigating .maplibregl-ctrl-bottom-right {
+      display: none !important;
     }
 
     /* Bovenbalk: Eén rustige zoekbalk met wis-knop (alleen in planstand) */
@@ -630,7 +630,6 @@
     let lastRecalcTime = 0;
     let lastRouteGeoJson = null;
 
-    // Onthoudt welke waarschuwingen al zijn uitgesproken/gepiept per afslag (voorkomt dubbele meldingen!)
     const announcedWarnings = new Set();
 
     let currentDarkState = isNightAtCoords(userCoords[1], userCoords[0]);
@@ -651,6 +650,15 @@
     });
 
     map.addControl(new maplibregl.AttributionControl({ compact: true }), 'bottom-right');
+
+    map.once('load', () => {
+      const attribEl = document.querySelector('.maplibregl-ctrl-attrib');
+      const attribBtn = document.querySelector('.maplibregl-ctrl-attrib-button');
+      if (attribEl && attribBtn) {
+        attribEl.classList.remove('maplibregl-compact-show');
+        attribBtn.addEventListener('click', () => attribEl.classList.toggle('user-opened'));
+      }
+    });
 
     function setupMapLayers() {
       const layers = map.getStyle().layers;
@@ -704,7 +712,7 @@
     });
 
     // 3. Japandi Audio-knop & 1-2-3 piepjes / NL spraak
-    let audioMode = 'beeps'; // 'beeps' | 'voice' | 'mute'
+    let audioMode = 'beeps';
     const audioBtn = document.getElementById('audioBtn');
     let audioCtx = null;
 
@@ -1022,11 +1030,18 @@
 
     map.on('moveend', () => fetchChargersSilently(false));
 
-    // 8. Favorieten geïntegreerd in het zoekveld (altijd betrouwbaar ingeladen)
+    // 8. Favorieten geïntegreerd in het zoekveld (inclusief veilige terugval-lijst)
     const favList = document.getElementById('favList');
     const saveFavBtn = document.getElementById('saveFavBtn');
     const heartIcon = document.getElementById('heartIcon');
     let favorites = [];
+
+    const DEFAULT_FAVS = [
+      { naam: "Thuis (Julianadorp)", lat: 52.8935, lon: 4.7625 },
+      { naam: "Ouders", lat: 52.369252, lon: 4.889302 },
+      { naam: "Lijun", lat: 52.9581313, lon: 4.7660666 },
+      { naam: "Museum Het Schip (Amsterdam)", lat: 52.3911, lon: 4.8768 }
+    ];
 
     async function loadFavorites() {
       let fileFavs = [];
@@ -1034,9 +1049,13 @@
         const res = await fetch('favorieten.json?t=' + Date.now(), { cache: 'no-store' });
         if (res.ok) {
           const parsed = await res.json();
-          if (Array.isArray(parsed)) fileFavs = parsed;
+          if (Array.isArray(parsed) && parsed.length) fileFavs = parsed;
         }
       } catch (e) {}
+
+      if (!fileFavs.length) {
+        fileFavs = DEFAULT_FAVS;
+      }
 
       let localFavs = [];
       try {
@@ -1275,7 +1294,6 @@
             .filter(isRealManeuver)
             .map(s => {
               const loc = s.maneuver.location;
-              // Unieke sleutel per kruispunt zodat herberekening geen dubbele piepjes veroorzaakt
               const key = `${loc[0].toFixed(4)},${loc[1].toFixed(4)}_${s.maneuver.type}`;
               return {
                 key,
@@ -1313,7 +1331,6 @@
 
     function buildRoundaboutSvg(step) {
       const exitNum = step.exit || '';
-      // Bepaal de klokhoek van de afslag (0° = 12 uur / rechtdoor, +90° = 3 uur / rechts, -90° = 9 uur / links)
       let turnAngle = 0;
       if (typeof step.bearingBefore === 'number' && typeof step.bearingAfter === 'number') {
         turnAngle = ((step.bearingAfter - step.bearingBefore + 540) % 360) - 180;
@@ -1333,9 +1350,7 @@
 
       return `<svg width="50" height="50" viewBox="0 0 48 48">
         <circle cx="24" cy="24" r="16" fill="none" stroke="#ffffff" stroke-width="3.8"/>
-        <!-- Aanrijweg onderaan (6 uur) -->
         <line x1="24" y1="40" x2="24" y2="47" stroke="#ffffff" stroke-width="3.8" stroke-linecap="round"/>
-        <!-- Uitrijweg op exacte klokpositie van de afslag -->
         <line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="#ffffff" stroke-width="4.2" stroke-linecap="round"/>
         <text x="24" y="30" text-anchor="middle" fill="#ffffff" font-size="18" font-weight="800" font-family="sans-serif">${exitNum}</text>
       </svg>`;
@@ -1410,7 +1425,6 @@
         playBeeps(1);
       }
 
-      // Zodra we voorbij het kruispunt zijn, direct nieuwe route-stap ophalen
       if (announcedWarnings.has(nowKey) && dist > 45) {
         calculateRoute(true);
       }
