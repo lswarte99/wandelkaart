@@ -9,9 +9,9 @@
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="theme-color" content="#18181b" />
 
-  <link rel="manifest" href="manifest.json?v=10" />
-  <link rel="icon" type="image/png" sizes="512x512" href="camper-nav.png?v=10" />
-  <link rel="apple-touch-icon" href="camper-nav.png?v=10" />
+  <link rel="manifest" href="manifest.json?v=11" />
+  <link rel="icon" type="image/png" sizes="512x512" href="camper-nav.png?v=11" />
+  <link rel="apple-touch-icon" href="camper-nav.png?v=11" />
 
   <!-- MapLibre GL JS (3D Vectorkaart Engine) -->
   <link href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css" rel="stylesheet" />
@@ -272,10 +272,17 @@
       align-items: center;
       justify-content: center;
       box-shadow: 0 4px 12px rgba(0, 0, 0, 0.32);
+      transition: transform 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
     }
 
     body.navigating .speed-sign.has-speed {
       display: flex;
+    }
+
+    .speed-sign.overspeed {
+      background: #fef2f2;
+      box-shadow: 0 0 0 4px rgba(220, 38, 38, 0.45);
+      transform: scale(1.06);
     }
 
     .ctrl-btn {
@@ -562,7 +569,7 @@
     </button>
   </div>
 
-  <!-- Slank Onderpaneel vóór vertrek (met stoere ster voor favorieten) -->
+  <!-- Slank Onderpaneel vóór vertrek -->
   <div id="planPanel" class="plan-panel">
     <div class="plan-left">
       <div id="planEta" class="plan-eta">--:--</div>
@@ -631,6 +638,7 @@
     let lastRouteGeoJson = null;
 
     const announcedWarnings = new Set();
+    let lastManeuverBeepTime = 0;
 
     let currentDarkState = isNightAtCoords(userCoords[1], userCoords[0]);
     const STYLES = {
@@ -711,7 +719,7 @@
       loadFavorites();
     });
 
-    // 3. Japandi Audio-knop & 1-2-3 piepjes / NL spraak
+    // 3. Japandi Audio-knop & 1-2-3 piepjes / NL spraak / snelheids-tikje
     let audioMode = 'beeps';
     const audioBtn = document.getElementById('audioBtn');
     let audioCtx = null;
@@ -761,6 +769,24 @@
       }
     }
 
+    function playSpeedWarningTone() {
+      if (audioMode === 'mute') return;
+      initAudio();
+      const now = audioCtx.currentTime;
+      for (let i = 0; i < 2; i++) {
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(440, now + i * 0.18);
+        gain.gain.setValueAtTime(0.45, now + i * 0.18);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + i * 0.18 + 0.13);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start(now + i * 0.18);
+        osc.stop(now + i * 0.18 + 0.14);
+      }
+    }
+
     function speakText(text) {
       if (audioMode !== 'voice' || !('speechSynthesis' in window)) return;
       window.speechSynthesis.cancel();
@@ -803,21 +829,29 @@
       return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
     }
 
-    // 5. Maximumsnelheid ophalen uit OpenStreetMap (strak op hoofdrijbaan binnen 15 m, geen ventwegen)
+    // 5. Maximumsnelheid ophalen (direct reagerend, op basis van dichtstbijzijnde wegsegment)
     const speedSign = document.getElementById('speedSign');
-    let lastSpeedCheckCoords = null;
+    let currentSpeedLimit = null;
     let lastSpeedCheckTime = 0;
+    let lastOverspeedBeepTime = 0;
+
+    function minDistToGeometry(pt, geom) {
+      if (!geom || !geom.length) return 999;
+      let minD = 999;
+      for (let i = 0; i < geom.length; i++) {
+        const d = distanceMeters(pt, [geom[i].lon, geom[i].lat]);
+        if (d < minD) minD = d;
+      }
+      return minD;
+    }
 
     async function updateMaxSpeedIfNeeded() {
       if (!isNavigating || !userCoords) return;
       const now = Date.now();
-      if (now - lastSpeedCheckTime < 9000) return;
-      if (lastSpeedCheckCoords && distanceMeters(userCoords, lastSpeedCheckCoords) < 90) return;
-
+      if (now - lastSpeedCheckTime < 4500) return;
       lastSpeedCheckTime = now;
-      lastSpeedCheckCoords = [...userCoords];
 
-      const query = `[out:json][timeout:6];way(around:15,${userCoords[1]},${userCoords[0]})["highway"~"^(motorway|trunk|primary|secondary|tertiary|unclassified|residential)$"]["maxspeed"];out tags 3;`;
+      const query = `[out:json][timeout:5];way(around:16,${userCoords[1]},${userCoords[0]})["highway"~"^(motorway|trunk|primary|secondary|tertiary|unclassified|residential)$"]["maxspeed"];out geom 4;`;
       try {
         const res = await fetch('https://overpass-api.de/api/interpreter', {
           method: 'POST',
@@ -826,41 +860,73 @@
         if (!res.ok) return;
         const data = await res.json();
         if (data.elements && data.elements.length) {
-          // Kies de hoogste wegklasse (voorkomt dat een parallelweg van 50 km/u een 80-weg overschrijft)
-          const rank = { motorway: 1, trunk: 2, primary: 3, secondary: 4, tertiary: 5, unclassified: 6, residential: 7 };
-          data.elements.sort((a, b) => (rank[a.tags.highway] || 9) - (rank[b.tags.highway] || 9));
+          // Kies het wegsegment dat het dichtst bij onze exacte GPS-positie ligt
+          data.elements.sort((a, b) => minDistToGeometry(userCoords, a.geometry) - minDistToGeometry(userCoords, b.geometry));
           const raw = data.elements[0].tags.maxspeed;
           const num = parseInt(raw, 10);
           if (!isNaN(num) && num >= 15 && num <= 130) {
+            currentSpeedLimit = num;
             speedSign.textContent = num;
             speedSign.classList.add('has-speed');
             return;
           }
         }
-        speedSign.classList.remove('has-speed');
+        currentSpeedLimit = null;
+        speedSign.classList.remove('has-speed', 'overspeed');
       } catch (e) {}
     }
 
-    // 6. GPS Tracking (80% route vóór je uit, 20% achter je door dynamische onderste padding)
-    const gpsBtn = document.getElementById('gpsBtn');
-
-    function getNavPadding() {
-      const bottomPad = Math.round(window.innerHeight * 0.56);
-      return { top: 90, bottom: bottomPad, left: 0, right: 0 };
+    function checkSpeedLimit(speedMetersPerSec) {
+      if (!isNavigating || !currentSpeedLimit || speedMetersPerSec === null || isNaN(speedMetersPerSec)) {
+        speedSign.classList.remove('overspeed');
+        return;
+      }
+      const kmh = speedMetersPerSec * 3.6;
+      if (kmh > currentSpeedLimit + 5) {
+        speedSign.classList.add('overspeed');
+        if (Date.now() - lastOverspeedBeepTime > 30000) {
+          lastOverspeedBeepTime = Date.now();
+          playSpeedWarningTone();
+        }
+      } else {
+        speedSign.classList.remove('overspeed');
+      }
     }
 
+    // 6. Scherm actief houden (WakeLock + automatische hervatting)
     async function requestWakeLock() {
       try {
         if ('wakeLock' in navigator) {
           wakeLock = await navigator.wakeLock.request('screen');
+          wakeLock.addEventListener('release', () => {
+            if (isNavigating && document.visibilityState === 'visible') {
+              requestWakeLock();
+            }
+          });
         }
       } catch (e) {}
+    }
+
+    document.addEventListener('visibilitychange', () => {
+      if (isNavigating && document.visibilityState === 'visible') {
+        requestWakeLock();
+      }
+    });
+
+    // 7. GPS Tracking (pijl laag in beeld: 80% vooruit kijken, 20% achteruit)
+    const gpsBtn = document.getElementById('gpsBtn');
+
+    function getNavPadding() {
+      // In MapLibre met pitch=60 schuift 'top' het cameramidden omlaag in het scherm
+      const topPad = Math.round(window.innerHeight * 0.48);
+      return { top: topPad, bottom: 0, left: 0, right: 0 };
     }
 
     function updateUserPosition(pos) {
       const lng = pos.coords.longitude;
       const lat = pos.coords.latitude;
       const heading = pos.coords.heading;
+      const speed = pos.coords.speed;
       userCoords = [lng, lat];
 
       if (!userMarker) {
@@ -894,6 +960,7 @@
 
       if (isNavigating) {
         updateMaxSpeedIfNeeded();
+        checkSpeedLimit(speed);
         if (destCoords) {
           checkUpcomingManeuver();
           if (Date.now() - lastRecalcTime > 20000) {
@@ -959,7 +1026,7 @@
       }, () => {}, { enableHighAccuracy: true });
     }
 
-    // 7. Automatisch laadpalen op de kaart
+    // 8. Automatisch laadpalen op de kaart
     let chargerMarkers = [];
     let lastChargerFetchCenter = null;
     let lastChargerFetchNavState = null;
@@ -1048,7 +1115,7 @@
 
     map.on('moveend', () => fetchChargersSilently(false));
 
-    // 8. Favorieten geïntegreerd in het zoekveld (met stoere gevulde sterren)
+    // 9. Favorieten geïntegreerd in het zoekveld (met stoere gevulde sterren)
     const favList = document.getElementById('favList');
     const saveFavBtn = document.getElementById('saveFavBtn');
     const starIcon = document.getElementById('starIcon');
@@ -1056,7 +1123,7 @@
 
     const DEFAULT_FAVS = [
       { naam: "Thuis (Julianadorp)", lat: 52.8935, lon: 4.7625 },
-      { naam: "Ouders", lat: 52.369252, lon: 4.889302 },
+      { naam: "Ouders", lat: 52.9581, lon: 4.7589 },
       { naam: "Lijun", lat: 52.9581313, lon: 4.7660666 },
       { naam: "Museum Het Schip (Amsterdam)", lat: 52.3911, lon: 4.8768 }
     ];
@@ -1138,7 +1205,7 @@
       loadFavorites();
     });
 
-    // 9. Zoekbalk + wis-knop
+    // 10. Zoekbalk + wis-knop
     const searchInput = document.getElementById('searchInput');
     const clearInputBtn = document.getElementById('clearInputBtn');
     const searchBtn = document.getElementById('searchBtn');
@@ -1224,7 +1291,7 @@
       if (e.key === 'Enter') performSearch();
     });
 
-    // 10. Routeberekening + slimme filtering voor voorsorteerstroken vóór rotondes
+    // 11. Routeberekening + ruime filtering voor voorsorteerstroken vóór rotondes
     const planPanel = document.getElementById('planPanel');
     const planEta = document.getElementById('planEta');
     const planSub = document.getElementById('planSub');
@@ -1319,15 +1386,14 @@
             const s = rawSteps[i];
             if (!isRealManeuver(s)) continue;
 
-            // Als een rotonde wordt voorafgegaan door een los voorsorteer- of fork-stapje binnen 40m, sla dat voorsorteerstapje over
+            // Sla voorsorteer-/splitsingsstapjes tot 85 meter vóór een rotonde over
             if (!isRoundaboutType(s.maneuver.type) && s.maneuver.type !== 'arrive') {
-              const nextRoundabout = rawSteps.slice(i + 1, i + 3).find(ns => isRoundaboutType(ns.maneuver.type));
-              if (nextRoundabout && distanceMeters(s.maneuver.location, nextRoundabout.maneuver.location) < 42) {
+              const nextRoundabout = rawSteps.slice(i + 1, i + 4).find(ns => isRoundaboutType(ns.maneuver.type));
+              if (nextRoundabout && distanceMeters(s.maneuver.location, nextRoundabout.maneuver.location) < 85) {
                 continue;
               }
             }
 
-            // Zoek voor een rotonde de werkelijke uitrij-koers (exit roundabout) voor het pijltje op de klok
             let exitBearingAfter = s.maneuver.bearing_after;
             if (isRoundaboutType(s.maneuver.type)) {
               const exitStep = rawSteps.slice(i + 1, i + 4).find(ns => ns.maneuver.type === 'exit roundabout' || ns.maneuver.type === 'exit rotary');
@@ -1337,7 +1403,8 @@
             }
 
             const loc = s.maneuver.location;
-            const key = `${loc[0].toFixed(4)},${loc[1].toFixed(4)}_${s.maneuver.type}`;
+            // Grove coördinaatsleutel (~110m) zodat een kleine GPS-sprong geen dubbele piep veroorzaakt
+            const key = `${loc[0].toFixed(3)},${loc[1].toFixed(3)}_${s.maneuver.type}`;
             processed.push({
               key,
               location: loc,
@@ -1364,7 +1431,7 @@
       } catch (e) {}
     }
 
-    // 11. Witte SVG-pijlen & Rotonde-icoon met echt pijltje op de exacte klokpositie
+    // 12. Witte SVG-pijlen & Rotonde-icoon met echt pijltje op de exacte klokpositie
     const turnIconBox = document.getElementById('turnIconBox');
     const turnDist = document.getElementById('turnDist');
     const turnStreet = document.getElementById('turnStreet');
@@ -1388,12 +1455,9 @@
         turnAngle = 180;
       }
 
-      // Draai het uitrij-pijltje exact naar turnAngle (0° = 12 uur, +90° = 3 uur, -90° = 9 uur, 180° = 6 uur)
       return `<svg width="54" height="54" viewBox="0 0 56 56">
         <circle cx="28" cy="28" r="15" fill="none" stroke="#ffffff" stroke-width="3.6"/>
-        <!-- Aanrijweg onderaan (6 uur) -->
         <line x1="28" y1="43" x2="28" y2="52" stroke="#ffffff" stroke-width="3.6" stroke-linecap="round"/>
-        <!-- Uitrijweg met pijlpunt geroteerd naar de exacte uitrithoek -->
         <g transform="rotate(${turnAngle.toFixed(1)} 28 28)">
           <line x1="28" y1="13" x2="28" y2="4" stroke="#ffffff" stroke-width="3.6" stroke-linecap="round"/>
           <polyline points="23.5,8.5 28,3.5 32.5,8.5" fill="none" stroke="#ffffff" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/>
@@ -1454,29 +1518,33 @@
       const farKey = `${nextStep.key}_far`;
       const midKey = `${nextStep.key}_mid`;
       const nowKey = `${nextStep.key}_now`;
+      const now = Date.now();
 
-      if (dist <= 35 && !announcedWarnings.has(nowKey)) {
+      if (dist <= 35 && !announcedWarnings.has(nowKey) && (now - lastManeuverBeepTime > 8000)) {
         announcedWarnings.add(nowKey);
         announcedWarnings.add(midKey);
         announcedWarnings.add(farKey);
+        lastManeuverBeepTime = now;
         playBeeps(3);
         speakText(`Nu ${label.toLowerCase()}`);
-      } else if (dist <= 110 && dist > 35 && !announcedWarnings.has(midKey)) {
+      } else if (dist <= 110 && dist > 35 && !announcedWarnings.has(midKey) && (now - lastManeuverBeepTime > 8000)) {
         announcedWarnings.add(midKey);
         announcedWarnings.add(farKey);
+        lastManeuverBeepTime = now;
         playBeeps(2);
         speakText(`Over 100 meter ${label.toLowerCase()}`);
-      } else if (dist <= 300 && dist > 110 && !announcedWarnings.has(farKey)) {
+      } else if (dist <= 300 && dist > 110 && !announcedWarnings.has(farKey) && (now - lastManeuverBeepTime > 8000)) {
         announcedWarnings.add(farKey);
+        lastManeuverBeepTime = now;
         playBeeps(1);
       }
 
-      if (announcedWarnings.has(nowKey) && dist > 45) {
+      if (announcedWarnings.has(nowKey) && dist > 55) {
         calculateRoute(true);
       }
     }
 
-    // 12. Bedieningsknoppen
+    // 13. Bedieningsknoppen
     document.getElementById('startNavBtn').addEventListener('click', () => {
       initAudio();
       isNavigating = true;
@@ -1491,8 +1559,9 @@
 
     document.getElementById('stopNavBtn').addEventListener('click', () => {
       isNavigating = false;
+      currentSpeedLimit = null;
       document.body.classList.remove('navigating');
-      speedSign.classList.remove('has-speed');
+      speedSign.classList.remove('has-speed', 'overspeed');
       map.easeTo({ pitch: 0, padding: { top: 0, bottom: 0, left: 0, right: 0 }, duration: 600 });
       if (wakeLock) { wakeLock.release(); wakeLock = null; }
       fetchChargersSilently(true);
@@ -1500,8 +1569,9 @@
 
     document.getElementById('closePlanBtn').addEventListener('click', () => {
       isNavigating = false;
+      currentSpeedLimit = null;
       document.body.classList.remove('navigating');
-      speedSign.classList.remove('has-speed');
+      speedSign.classList.remove('has-speed', 'overspeed');
       planPanel.style.display = 'none';
       if (destMarker) { destMarker.remove(); destMarker = null; }
       if (map.getLayer('route-line')) map.removeLayer('route-line');
