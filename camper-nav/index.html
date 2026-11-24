@@ -9,9 +9,9 @@
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="theme-color" content="#18181b" />
 
-  <link rel="manifest" href="manifest.json?v=11" />
-  <link rel="icon" type="image/png" sizes="512x512" href="camper-nav.png?v=11" />
-  <link rel="apple-touch-icon" href="camper-nav.png?v=11" />
+  <link rel="manifest" href="manifest.json?v=12" />
+  <link rel="icon" type="image/png" sizes="512x512" href="camper-nav.png?v=12" />
+  <link rel="apple-touch-icon" href="camper-nav.png?v=12" />
 
   <!-- MapLibre GL JS (3D Vectorkaart Engine) -->
   <link href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css" rel="stylesheet" />
@@ -311,31 +311,89 @@
       display: none;
     }
 
-    /* Slank Onderpaneel in Planstand (Aankomsttijd links, Start rechts) */
-    .plan-panel {
+    /* Slank Onderpaneel in Planstand (Aankomsttijd links, Start & opties rechts) */
+    .plan-wrapper {
       position: absolute;
       bottom: 14px;
       left: 14px;
       right: 14px;
       z-index: 1001;
+      display: none;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    body.navigating .plan-wrapper {
+      display: none !important;
+    }
+
+    /* Optioneel EV Laadstop-paneeltje (alleen zichtbaar na tik op bliksem-icoon) */
+    .ev-drawer {
+      background: #ffffff;
+      border-radius: 16px;
+      padding: 14px 16px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.22);
+      display: none;
+      flex-direction: column;
+      gap: 10px;
+      color: #18181b;
+    }
+
+    body.dark-mode .ev-drawer {
+      background: #18181b;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      color: #f4f4f5;
+    }
+
+    .ev-slider-row {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      font-size: 13px;
+    }
+
+    .ev-slider-header {
+      display: flex;
+      justify-content: space-between;
+      font-weight: 600;
+    }
+
+    .ev-slider-row input[type="range"] {
+      width: 100%;
+      accent-color: #0284c7;
+    }
+
+    .ev-plan-btn {
+      padding: 10px;
+      border-radius: 10px;
+      border: none;
+      background: #0284c7;
+      color: #ffffff;
+      font-weight: 700;
+      font-size: 14px;
+      cursor: pointer;
+    }
+
+    .ev-status {
+      font-size: 12.5px;
+      color: #71717a;
+    }
+
+    .plan-panel {
       background: #ffffff;
       border-radius: 16px;
       padding: 12px 14px;
       box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
-      display: none;
+      display: flex;
       align-items: center;
       justify-content: space-between;
-      gap: 10px;
+      gap: 8px;
     }
 
     body.dark-mode .plan-panel {
       background: #18181b;
       border: 1px solid rgba(255, 255, 255, 0.1);
       color: #f4f4f5;
-    }
-
-    body.navigating .plan-panel {
-      display: none !important;
     }
 
     .plan-left {
@@ -359,12 +417,15 @@
       font-size: 13px;
       color: #71717a;
       margin-top: 2px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
 
     .plan-right {
       display: flex;
       align-items: center;
-      gap: 8px;
+      gap: 6px;
       flex-shrink: 0;
     }
 
@@ -372,8 +433,8 @@
       background: #f4f4f5;
       border: none;
       border-radius: 50%;
-      width: 38px;
-      height: 38px;
+      width: 36px;
+      height: 36px;
       color: #52525b;
       cursor: pointer;
       display: flex;
@@ -386,8 +447,13 @@
       color: #d4d4d8;
     }
 
+    .icon-circle-btn.active {
+      background: #0284c7;
+      color: #ffffff;
+    }
+
     .start-btn {
-      padding: 11px 22px;
+      padding: 11px 18px;
       border-radius: 12px;
       border: none;
       background: #15803d;
@@ -397,7 +463,7 @@
       cursor: pointer;
     }
 
-    /* Slanke Onderbalk tijdens rijden: STOP links, AANKOMSTTIJD rechts */
+    /* Slanke Onderbalk tijdens rijden: STOP & OMRIJDEN links, AANKOMSTTIJD rechts */
     .drive-bar {
       position: absolute;
       bottom: 14px;
@@ -411,6 +477,7 @@
       display: none;
       align-items: center;
       justify-content: space-between;
+      gap: 8px;
     }
 
     body.dark-mode .drive-bar {
@@ -422,14 +489,31 @@
       display: flex;
     }
 
+    .drive-left-btns {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
     .stop-btn {
       background: #b91c1c;
       color: #ffffff;
       border: none;
       border-radius: 12px;
-      padding: 11px 22px;
+      padding: 11px 18px;
       font-weight: 700;
       font-size: 15px;
+      cursor: pointer;
+    }
+
+    .detour-btn {
+      background: #27272a;
+      color: #f4f4f5;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 12px;
+      padding: 11px 13px;
+      font-weight: 600;
+      font-size: 13px;
       cursor: pointer;
     }
 
@@ -569,31 +653,60 @@
     </button>
   </div>
 
-  <!-- Slank Onderpaneel vóór vertrek -->
-  <div id="planPanel" class="plan-panel">
-    <div class="plan-left">
-      <div id="planEta" class="plan-eta">--:--</div>
-      <div id="planSub" class="plan-sub">Aankomst berekenen...</div>
+  <!-- Slank Onderpaneel vóór vertrek + optionele laadstopplanner -->
+  <div id="planWrapper" class="plan-wrapper">
+    <div id="evDrawer" class="ev-drawer">
+      <div class="ev-slider-row">
+        <div class="ev-slider-header">
+          <span>Vertrek-accu (e-NV200 • 150 km)</span>
+          <span id="startSocVal">100%</span>
+        </div>
+        <input type="range" id="startSocSlider" min="20" max="100" step="5" value="100" />
+      </div>
+      <div class="ev-slider-row">
+        <div class="ev-slider-header">
+          <span>Gewenste reserve bij aankomst</span>
+          <span id="endSocVal">15%</span>
+        </div>
+        <input type="range" id="endSocSlider" min="10" max="50" step="5" value="15" />
+      </div>
+      <button type="button" id="findChademoStopBtn" class="ev-plan-btn">Zoek CHAdeMO-laadstop op route</button>
+      <div id="evStatus" class="ev-status">Bruikbaar bereik: 128 km</div>
     </div>
-    <div class="plan-right">
-      <button id="saveFavBtn" class="icon-circle-btn" title="Opslaan als favoriet" aria-label="Opslaan als favoriet">
-        <svg id="starIcon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round">
-          <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
-        </svg>
-      </button>
-      <button id="closePlanBtn" class="icon-circle-btn" title="Sluiten" aria-label="Sluiten">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round">
-          <line x1="18" y1="6" x2="6" y2="18" />
-          <line x1="6" y1="6" x2="18" y2="18" />
-        </svg>
-      </button>
-      <button id="startNavBtn" class="start-btn">Start</button>
+
+    <div id="planPanel" class="plan-panel">
+      <div class="plan-left">
+        <div id="planEta" class="plan-eta">--:--</div>
+        <div id="planSub" class="plan-sub">Aankomst berekenen...</div>
+      </div>
+      <div class="plan-right">
+        <button id="toggleEvBtn" class="icon-circle-btn" title="CHAdeMO laadstop plannen" aria-label="Laadstop plannen">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+          </svg>
+        </button>
+        <button id="saveFavBtn" class="icon-circle-btn" title="Opslaan als favoriet" aria-label="Opslaan als favoriet">
+          <svg id="starIcon" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round">
+            <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+          </svg>
+        </button>
+        <button id="closePlanBtn" class="icon-circle-btn" title="Sluiten" aria-label="Sluiten">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round">
+            <line x1="18" y1="6" x2="6" y2="18" />
+            <line x1="6" y1="6" x2="18" y2="18" />
+          </svg>
+        </button>
+        <button id="startNavBtn" class="start-btn">Start</button>
+      </div>
     </div>
   </div>
 
-  <!-- Slanke balk tijdens rijden: STOP links, AANKOMSTTIJD rechts -->
+  <!-- Slanke balk tijdens rijden: STOP & OMRIJDEN links, AANKOMSTTIJD rechts -->
   <div id="driveBar" class="drive-bar">
-    <button id="stopNavBtn" class="stop-btn">Stop</button>
+    <div class="drive-left-btns">
+      <button id="stopNavBtn" class="stop-btn">Stop</button>
+      <button id="detourBtn" class="detour-btn" title="Wegafsluiting vóór je vermijden">Omrijden</button>
+    </div>
     <div class="eta-box">
       <div id="driveEtaTime" class="eta-time">--:--</div>
       <div id="driveEtaSub" class="eta-sub">Aankomsttijd</div>
@@ -629,6 +742,8 @@
     let destCoords = null;
     let destName = '';
     let destMarker = null;
+    let viaWaypoint = null; // Voor CHAdeMO laadstop of omleiding
+    let viaMarker = null;
     let isNavigating = false;
     let followGps = false;
     let watchId = null;
@@ -829,29 +944,19 @@
       return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
     }
 
-    // 5. Maximumsnelheid ophalen (direct reagerend, op basis van dichtstbijzijnde wegsegment)
+    // 5. Maximumsnelheid ophalen uit OpenStreetMap (betrouwbare snelle query)
     const speedSign = document.getElementById('speedSign');
     let currentSpeedLimit = null;
     let lastSpeedCheckTime = 0;
     let lastOverspeedBeepTime = 0;
 
-    function minDistToGeometry(pt, geom) {
-      if (!geom || !geom.length) return 999;
-      let minD = 999;
-      for (let i = 0; i < geom.length; i++) {
-        const d = distanceMeters(pt, [geom[i].lon, geom[i].lat]);
-        if (d < minD) minD = d;
-      }
-      return minD;
-    }
-
-    async function updateMaxSpeedIfNeeded() {
+    async function updateMaxSpeedIfNeeded(forceNow = false) {
       if (!isNavigating || !userCoords) return;
       const now = Date.now();
-      if (now - lastSpeedCheckTime < 4500) return;
+      if (!forceNow && now - lastSpeedCheckTime < 5000) return;
       lastSpeedCheckTime = now;
 
-      const query = `[out:json][timeout:5];way(around:16,${userCoords[1]},${userCoords[0]})["highway"~"^(motorway|trunk|primary|secondary|tertiary|unclassified|residential)$"]["maxspeed"];out geom 4;`;
+      const query = `[out:json][timeout:6];way(around:18,${userCoords[1]},${userCoords[0]})["highway"~"^(motorway|trunk|primary|secondary|tertiary|unclassified|residential)$"]["maxspeed"];out tags 3;`;
       try {
         const res = await fetch('https://overpass-api.de/api/interpreter', {
           method: 'POST',
@@ -860,8 +965,8 @@
         if (!res.ok) return;
         const data = await res.json();
         if (data.elements && data.elements.length) {
-          // Kies het wegsegment dat het dichtst bij onze exacte GPS-positie ligt
-          data.elements.sort((a, b) => minDistToGeometry(userCoords, a.geometry) - minDistToGeometry(userCoords, b.geometry));
+          const rank = { motorway: 1, trunk: 2, primary: 3, secondary: 4, tertiary: 5, unclassified: 6, residential: 7 };
+          data.elements.sort((a, b) => (rank[a.tags.highway] || 9) - (rank[b.tags.highway] || 9));
           const raw = data.elements[0].tags.maxspeed;
           const num = parseInt(raw, 10);
           if (!isNaN(num) && num >= 15 && num <= 130) {
@@ -917,7 +1022,6 @@
     const gpsBtn = document.getElementById('gpsBtn');
 
     function getNavPadding() {
-      // In MapLibre met pitch=60 schuift 'top' het cameramidden omlaag in het scherm
       const topPad = Math.round(window.innerHeight * 0.48);
       return { top: topPad, bottom: 0, left: 0, right: 0 };
     }
@@ -959,7 +1063,7 @@
       }
 
       if (isNavigating) {
-        updateMaxSpeedIfNeeded();
+        updateMaxSpeedIfNeeded(false);
         checkSpeedLimit(speed);
         if (destCoords) {
           checkUpcomingManeuver();
@@ -1026,16 +1130,17 @@
       }, () => {}, { enableHighAccuracy: true });
     }
 
-    // 8. Automatisch laadpalen op de kaart
+    // 8. Laadpalen: In planstand AC + CHAdeMO, tijdens rijden uitsluitend CHAdeMO-snelladers
     let chargerMarkers = [];
     let lastChargerFetchCenter = null;
     let lastChargerFetchNavState = null;
 
     async function fetchChargersSilently(forceRefresh = false) {
-      if (!isNavigating && map.getZoom() < 11.5) return;
+      // Alleen in planstand verbergen als je uitzoomt voorbij zoom 9.5
+      if (!isNavigating && map.getZoom() < 9.5) return;
 
       const center = map.getCenter();
-      const thresholdMeters = isNavigating ? 10000 : 4000;
+      const thresholdMeters = isNavigating ? 8000 : 2500;
 
       if (!forceRefresh &&
           lastChargerFetchNavState === isNavigating &&
@@ -1047,8 +1152,8 @@
       lastChargerFetchCenter = [center.lng, center.lat];
       lastChargerFetchNavState = isNavigating;
 
-      const latDelta = isNavigating ? 0.22 : 0.09;
-      const lonDelta = isNavigating ? 0.35 : 0.14;
+      const latDelta = isNavigating ? 0.25 : 0.10;
+      const lonDelta = isNavigating ? 0.38 : 0.16;
 
       const south = (center.lat - latDelta).toFixed(4);
       const west = (center.lng - lonDelta).toFixed(4);
@@ -1058,7 +1163,7 @@
 
       const query = isNavigating
         ? `[out:json][timeout:12];(node["amenity"="charging_station"]["socket:chademo"](${bbox});way["amenity"="charging_station"]["socket:chademo"](${bbox}););out center 100;`
-        : `[out:json][timeout:12];(node["amenity"="charging_station"](${bbox});way["amenity"="charging_station"](${bbox}););out center 100;`;
+        : `[out:json][timeout:12];(node["amenity"="charging_station"](${bbox});way["amenity"="charging_station"](${bbox}););out center 120;`;
 
       try {
         const res = await fetch('https://overpass-api.de/api/interpreter', {
@@ -1079,13 +1184,14 @@
           const tags = el.tags || {};
           const hasChademo = Boolean(tags['socket:chademo'] && tags['socket:chademo'] !== 'no');
 
+          // Tijdens het rijden nooit gewone AC-laadpalen tonen
           if (isNavigating && !hasChademo) return;
 
-          const name = tags.name || tags.operator || (hasChademo ? 'CHAdeMO Snellader' : 'Laadpaal');
+          const name = tags.name || tags.operator || (hasChademo ? 'CHAdeMO Snellader' : 'AC Laadpaal');
           const power = hasChademo
             ? (tags['socket:chademo:output'] || '')
             : (tags['socket:type2:output'] || '');
-          const subLabel = (hasChademo ? 'CHAdeMO snellader' : 'Reguliere laadpaal') + (power ? ` • ${power}` : '');
+          const subLabel = (hasChademo ? 'CHAdeMO snellader' : 'AC laadpaal') + (power ? ` • ${power}` : '');
 
           const pin = document.createElement('div');
           pin.className = hasChademo ? 'charger-pin chademo' : 'charger-pin';
@@ -1291,8 +1397,96 @@
       if (e.key === 'Enter') performSearch();
     });
 
-    // 11. Routeberekening + ruime filtering voor voorsorteerstroken vóór rotondes
-    const planPanel = document.getElementById('planPanel');
+    // 11. Optionele CHAdeMO-laadstopplanner (150 km actieradius, 100% -> 15% standaard)
+    const toggleEvBtn = document.getElementById('toggleEvBtn');
+    const evDrawer = document.getElementById('evDrawer');
+    const startSocSlider = document.getElementById('startSocSlider');
+    const endSocSlider = document.getElementById('endSocSlider');
+    const startSocVal = document.getElementById('startSocVal');
+    const endSocVal = document.getElementById('endSocVal');
+    const evStatus = document.getElementById('evStatus');
+    const findChademoStopBtn = document.getElementById('findChademoStopBtn');
+
+    function updateEvRangeText() {
+      const s = parseInt(startSocSlider.value, 10);
+      const e = parseInt(endSocSlider.value, 10);
+      startSocVal.textContent = `${s}%`;
+      endSocVal.textContent = `${e}%`;
+      const usableKm = Math.max(10, Math.round(((s - e) / 100) * 150));
+      evStatus.textContent = `Bruikbaar bereik: ${usableKm} km`;
+      return usableKm;
+    }
+
+    startSocSlider.addEventListener('input', updateEvRangeText);
+    endSocSlider.addEventListener('input', updateEvRangeText);
+
+    toggleEvBtn.addEventListener('click', () => {
+      const isOpen = evDrawer.style.display === 'flex';
+      evDrawer.style.display = isOpen ? 'none' : 'flex';
+      toggleEvBtn.classList.toggle('active', !isOpen);
+      updateEvRangeText();
+    });
+
+    findChademoStopBtn.addEventListener('click', async () => {
+      if (!lastRouteGeoJson || !lastRouteGeoJson.geometry || !lastRouteGeoJson.geometry.coordinates) return;
+      const usableKm = updateEvRangeText();
+      const coords = lastRouteGeoJson.geometry.coordinates;
+
+      // Zoek het punt op de routelijn dat overeenkomt met het bruikbare bereik
+      let accMeters = 0;
+      let targetPt = coords[coords.length - 1];
+      for (let i = 1; i < coords.length; i++) {
+        accMeters += distanceMeters(coords[i - 1], coords[i]);
+        if (accMeters >= usableKm * 1000) {
+          targetPt = coords[i];
+          break;
+        }
+      }
+
+      evStatus.textContent = 'CHAdeMO-snellader zoeken langs de route...';
+      const q = `[out:json][timeout:10];(node(around:9000,${targetPt[1]},${targetPt[0]})["amenity"="charging_station"]["socket:chademo"];way(around:9000,${targetPt[1]},${targetPt[0]})["amenity"="charging_station"]["socket:chademo"];);out center 15;`;
+
+      try {
+        const res = await fetch('https://overpass-api.de/api/interpreter', {
+          method: 'POST',
+          body: 'data=' + encodeURIComponent(q)
+        });
+        const data = await res.json();
+        if (!data.elements || !data.elements.length) {
+          evStatus.textContent = 'Geen CHAdeMO-snellader binnen 9 km van dit punt gevonden.';
+          return;
+        }
+
+        // Kies de dichtstbijzijnde CHAdeMO-snellader bij het ideale laadpunt
+        let best = null;
+        let bestDist = Infinity;
+        data.elements.forEach(el => {
+          const lat = el.lat || (el.center && el.center.lat);
+          const lon = el.lon || (el.center && el.center.lon);
+          if (!lat || !lon) return;
+          const d = distanceMeters(targetPt, [lon, lat]);
+          if (d < bestDist) {
+            bestDist = d;
+            best = { lat, lon, name: (el.tags && (el.tags.name || el.tags.operator)) || 'CHAdeMO Snellader' };
+          }
+        });
+
+        if (best) {
+          viaWaypoint = [best.lon, best.lat];
+          if (viaMarker) viaMarker.remove();
+          viaMarker = new maplibregl.Marker({ color: '#0284c7' })
+            .setLngLat(viaWaypoint)
+            .addTo(map);
+          evStatus.textContent = `Laadstop toegevoegd: ${best.name}`;
+          calculateRoute(false);
+        }
+      } catch (e) {
+        evStatus.textContent = 'Fout bij zoeken naar CHAdeMO-snellader.';
+      }
+    });
+
+    // 12. Routeberekening + filtering van vluchtheuvels en voorsorteerstroken
+    const planWrapper = document.getElementById('planWrapper');
     const planEta = document.getElementById('planEta');
     const planSub = document.getElementById('planSub');
     const driveEtaTime = document.getElementById('driveEtaTime');
@@ -1312,9 +1506,13 @@
       searchResults.style.display = 'none';
       destCoords = [lng, lat];
       destName = label;
+      viaWaypoint = null;
+      if (viaMarker) { viaMarker.remove(); viaMarker = null; }
+      evDrawer.style.display = 'none';
+      toggleEvBtn.classList.remove('active');
       announcedWarnings.clear();
       starIcon.setAttribute('fill', 'none');
-      planPanel.style.display = 'flex';
+      planWrapper.style.display = 'flex';
       planEta.textContent = '--:--';
       planSub.textContent = 'Aankomst berekenen...';
 
@@ -1349,12 +1547,18 @@
       return t === 'roundabout' || t === 'rotary';
     }
 
-    function isRealManeuver(step) {
+    function isRealManeuver(step, prevStep) {
       const t = step.maneuver.type;
       const m = step.maneuver.modifier || '';
       if (t === 'depart' || t === 'exit roundabout' || t === 'exit rotary') return false;
       if (t === 'arrive' || isRoundaboutType(t) || t === 'fork' || t === 'off ramp') return true;
       if ((t === 'new name' || t === 'continue') && (m === '' || m === 'straight')) return false;
+
+      // Negeer flauwe afbuiging langs een vluchtheuvel op dezelfde straat
+      if (m.includes('slight') && prevStep && step.name && prevStep.name && step.name === prevStep.name) {
+        return false;
+      }
+
       if (m.includes('left') || m.includes('right') || m.includes('uturn')) return true;
       return false;
     }
@@ -1364,7 +1568,10 @@
       lastRecalcTime = Date.now();
 
       try {
-        const url = `https://router.project-osrm.org/route/v1/car/${userCoords[0]},${userCoords[1]};${destCoords[0]},${destCoords[1]}?overview=full&geometries=geojson&steps=true`;
+        const coordsParam = viaWaypoint
+          ? `${userCoords[0]},${userCoords[1]};${viaWaypoint[0]},${viaWaypoint[1]};${destCoords[0]},${destCoords[1]}`
+          : `${userCoords[0]},${userCoords[1]};${destCoords[0]},${destCoords[1]}`;
+        const url = `https://router.project-osrm.org/route/v1/car/${coordsParam}?overview=full&geometries=geojson&steps=true`;
         const res = await fetch(url);
         const data = await res.json();
 
@@ -1372,19 +1579,28 @@
 
         const route = data.routes[0];
         const eta = formatArrival(route.duration);
+        const kmTotal = Math.round(route.distance / 1000);
 
         planEta.textContent = eta.clock;
-        planSub.textContent = `Aankomst • ${eta.mins} min`;
+        planSub.textContent = `Aankomst • ${eta.mins} min (${kmTotal} km)`;
         driveEtaTime.textContent = eta.clock;
         driveEtaSub.textContent = `Nog ${eta.mins} min`;
 
-        if (route.legs && route.legs[0] && route.legs[0].steps) {
-          const rawSteps = route.legs[0].steps;
+        // Verzamel alle stappen over alle legs (ook bij een laadstop-tussenpunt)
+        const rawSteps = [];
+        if (route.legs) {
+          route.legs.forEach(leg => {
+            if (leg.steps) rawSteps.push(...leg.steps);
+          });
+        }
+
+        if (rawSteps.length) {
           const processed = [];
 
           for (let i = 0; i < rawSteps.length; i++) {
             const s = rawSteps[i];
-            if (!isRealManeuver(s)) continue;
+            const prevS = i > 0 ? rawSteps[i - 1] : null;
+            if (!isRealManeuver(s, prevS)) continue;
 
             // Sla voorsorteer-/splitsingsstapjes tot 85 meter vóór een rotonde over
             if (!isRoundaboutType(s.maneuver.type) && s.maneuver.type !== 'arrive') {
@@ -1403,7 +1619,6 @@
             }
 
             const loc = s.maneuver.location;
-            // Grove coördinaatsleutel (~110m) zodat een kleine GPS-sprong geen dubbele piep veroorzaakt
             const key = `${loc[0].toFixed(3)},${loc[1].toFixed(3)}_${s.maneuver.type}`;
             processed.push({
               key,
@@ -1426,12 +1641,38 @@
 
         if (!isNavigating && !isSilentUpdate) {
           const bounds = new maplibregl.LngLatBounds(userCoords, userCoords).extend(destCoords);
-          map.fitBounds(bounds, { padding: { top: 90, bottom: 130, left: 40, right: 40 }, pitch: 0 });
+          if (viaWaypoint) bounds.extend(viaWaypoint);
+          map.fitBounds(bounds, { padding: { top: 90, bottom: 140, left: 40, right: 40 }, pitch: 0 });
         }
       } catch (e) {}
     }
 
-    // 12. Witte SVG-pijlen & Rotonde-icoon met echt pijltje op de exacte klokpositie
+    // 13. Omrijden bij een lokale wegafsluiting (zoals de Nieuweweg in Den Helder)
+    document.getElementById('detourBtn').addEventListener('click', () => {
+      if (!lastRouteGeoJson || !lastRouteGeoJson.geometry || !lastRouteGeoJson.geometry.coordinates) return;
+      const coords = lastRouteGeoJson.geometry.coordinates;
+
+      // Zoek een punt ~500m verderop op de route en verplaats dat 450m zijwaarts om een alternatieve route af te dwingen
+      let acc = 0;
+      let blockPt = coords[Math.min(5, coords.length - 1)];
+      for (let i = 1; i < coords.length; i++) {
+        acc += distanceMeters(coords[i - 1], coords[i]);
+        if (acc >= 500) {
+          blockPt = coords[i];
+          break;
+        }
+      }
+
+      viaWaypoint = [blockPt[0] + 0.0065, blockPt[1] + 0.004];
+      if (viaMarker) viaMarker.remove();
+      viaMarker = new maplibregl.Marker({ color: '#f59e0b' })
+        .setLngLat(viaWaypoint)
+        .addTo(map);
+      announcedWarnings.clear();
+      calculateRoute(true);
+    });
+
+    // 14. Witte SVG-pijlen & Rotonde-icoon met echt pijltje op de exacte klokpositie
     const turnIconBox = document.getElementById('turnIconBox');
     const turnDist = document.getElementById('turnDist');
     const turnStreet = document.getElementById('turnStreet');
@@ -1544,7 +1785,7 @@
       }
     }
 
-    // 13. Bedieningsknoppen
+    // 15. Bedieningsknoppen
     document.getElementById('startNavBtn').addEventListener('click', () => {
       initAudio();
       isNavigating = true;
@@ -1553,7 +1794,7 @@
       requestWakeLock();
       startTracking(true);
       fetchChargersSilently(true);
-      updateMaxSpeedIfNeeded();
+      updateMaxSpeedIfNeeded(true);
       playBeeps(1);
     });
 
@@ -1572,11 +1813,13 @@
       currentSpeedLimit = null;
       document.body.classList.remove('navigating');
       speedSign.classList.remove('has-speed', 'overspeed');
-      planPanel.style.display = 'none';
+      planWrapper.style.display = 'none';
       if (destMarker) { destMarker.remove(); destMarker = null; }
+      if (viaMarker) { viaMarker.remove(); viaMarker = null; }
       if (map.getLayer('route-line')) map.removeLayer('route-line');
       if (map.getSource('route')) map.removeSource('route');
       destCoords = null;
+      viaWaypoint = null;
       lastRouteGeoJson = null;
       routeSteps = [];
       announcedWarnings.clear();
