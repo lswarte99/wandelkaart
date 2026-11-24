@@ -9,9 +9,9 @@
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="theme-color" content="#18181b" />
 
-  <link rel="manifest" href="manifest.json?v=12" />
-  <link rel="icon" type="image/png" sizes="512x512" href="camper-nav.png?v=12" />
-  <link rel="apple-touch-icon" href="camper-nav.png?v=12" />
+  <link rel="manifest" href="manifest.json?v=13" />
+  <link rel="icon" type="image/png" sizes="512x512" href="camper-nav.png?v=13" />
+  <link rel="apple-touch-icon" href="camper-nav.png?v=13" />
 
   <!-- MapLibre GL JS (3D Vectorkaart Engine) -->
   <link href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css" rel="stylesheet" />
@@ -742,13 +742,14 @@
     let destCoords = null;
     let destName = '';
     let destMarker = null;
-    let viaWaypoint = null; // Voor CHAdeMO laadstop of omleiding
+    let viaWaypoint = null;
     let viaMarker = null;
     let isNavigating = false;
     let followGps = false;
     let watchId = null;
     let wakeLock = null;
     let routeSteps = [];
+    let routeSpeedSegments = []; // [{ coord: [lon, lat], speed: number|null }]
     let lastRecalcTime = 0;
     let lastRouteGeoJson = null;
 
@@ -944,41 +945,36 @@
       return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
     }
 
-    // 5. Maximumsnelheid ophalen uit OpenStreetMap (betrouwbare snelle query)
+    // 5. Maximumsnelheid direct uit de OSRM-route-annotatie (geen rate-limit, geen ventweg-vervuiling)
     const speedSign = document.getElementById('speedSign');
     let currentSpeedLimit = null;
-    let lastSpeedCheckTime = 0;
     let lastOverspeedBeepTime = 0;
 
-    async function updateMaxSpeedIfNeeded(forceNow = false) {
-      if (!isNavigating || !userCoords) return;
-      const now = Date.now();
-      if (!forceNow && now - lastSpeedCheckTime < 5000) return;
-      lastSpeedCheckTime = now;
-
-      const query = `[out:json][timeout:6];way(around:18,${userCoords[1]},${userCoords[0]})["highway"~"^(motorway|trunk|primary|secondary|tertiary|unclassified|residential)$"]["maxspeed"];out tags 3;`;
-      try {
-        const res = await fetch('https://overpass-api.de/api/interpreter', {
-          method: 'POST',
-          body: 'data=' + encodeURIComponent(query)
-        });
-        if (!res.ok) return;
-        const data = await res.json();
-        if (data.elements && data.elements.length) {
-          const rank = { motorway: 1, trunk: 2, primary: 3, secondary: 4, tertiary: 5, unclassified: 6, residential: 7 };
-          data.elements.sort((a, b) => (rank[a.tags.highway] || 9) - (rank[b.tags.highway] || 9));
-          const raw = data.elements[0].tags.maxspeed;
-          const num = parseInt(raw, 10);
-          if (!isNaN(num) && num >= 15 && num <= 130) {
-            currentSpeedLimit = num;
-            speedSign.textContent = num;
-            speedSign.classList.add('has-speed');
-            return;
-          }
-        }
+    function updateMaxSpeedFromRoute() {
+      if (!isNavigating || !userCoords || !routeSpeedSegments.length) {
         currentSpeedLimit = null;
         speedSign.classList.remove('has-speed', 'overspeed');
-      } catch (e) {}
+        return;
+      }
+
+      let nearestSeg = null;
+      let minD = Infinity;
+      for (let i = 0; i < routeSpeedSegments.length; i++) {
+        const d = distanceMeters(userCoords, routeSpeedSegments[i].coord);
+        if (d < minD) {
+          minD = d;
+          nearestSeg = routeSpeedSegments[i];
+        }
+      }
+
+      if (nearestSeg && minD <= 45 && nearestSeg.speed && nearestSeg.speed >= 15 && nearestSeg.speed <= 130) {
+        currentSpeedLimit = nearestSeg.speed;
+        speedSign.textContent = nearestSeg.speed;
+        speedSign.classList.add('has-speed');
+      } else {
+        currentSpeedLimit = null;
+        speedSign.classList.remove('has-speed', 'overspeed');
+      }
     }
 
     function checkSpeedLimit(speedMetersPerSec) {
@@ -1063,7 +1059,7 @@
       }
 
       if (isNavigating) {
-        updateMaxSpeedIfNeeded(false);
+        updateMaxSpeedFromRoute();
         checkSpeedLimit(speed);
         if (destCoords) {
           checkUpcomingManeuver();
@@ -1136,7 +1132,6 @@
     let lastChargerFetchNavState = null;
 
     async function fetchChargersSilently(forceRefresh = false) {
-      // Alleen in planstand verbergen als je uitzoomt voorbij zoom 9.5
       if (!isNavigating && map.getZoom() < 9.5) return;
 
       const center = map.getCenter();
@@ -1184,7 +1179,6 @@
           const tags = el.tags || {};
           const hasChademo = Boolean(tags['socket:chademo'] && tags['socket:chademo'] !== 'no');
 
-          // Tijdens het rijden nooit gewone AC-laadpalen tonen
           if (isNavigating && !hasChademo) return;
 
           const name = tags.name || tags.operator || (hasChademo ? 'CHAdeMO Snellader' : 'AC Laadpaal');
@@ -1432,7 +1426,6 @@
       const usableKm = updateEvRangeText();
       const coords = lastRouteGeoJson.geometry.coordinates;
 
-      // Zoek het punt op de routelijn dat overeenkomt met het bruikbare bereik
       let accMeters = 0;
       let targetPt = coords[coords.length - 1];
       for (let i = 1; i < coords.length; i++) {
@@ -1457,7 +1450,6 @@
           return;
         }
 
-        // Kies de dichtstbijzijnde CHAdeMO-snellader bij het ideale laadpunt
         let best = null;
         let bestDist = Infinity;
         data.elements.forEach(el => {
@@ -1485,7 +1477,7 @@
       }
     });
 
-    // 12. Routeberekening + filtering van vluchtheuvels en voorsorteerstroken
+    // 12. Routeberekening + herkenning van turborotondes & directe maxspeed-annotaties
     const planWrapper = document.getElementById('planWrapper');
     const planEta = document.getElementById('planEta');
     const planSub = document.getElementById('planSub');
@@ -1554,7 +1546,6 @@
       if (t === 'arrive' || isRoundaboutType(t) || t === 'fork' || t === 'off ramp') return true;
       if ((t === 'new name' || t === 'continue') && (m === '' || m === 'straight')) return false;
 
-      // Negeer flauwe afbuiging langs een vluchtheuvel op dezelfde straat
       if (m.includes('slight') && prevStep && step.name && prevStep.name && step.name === prevStep.name) {
         return false;
       }
@@ -1571,7 +1562,7 @@
         const coordsParam = viaWaypoint
           ? `${userCoords[0]},${userCoords[1]};${viaWaypoint[0]},${viaWaypoint[1]};${destCoords[0]},${destCoords[1]}`
           : `${userCoords[0]},${userCoords[1]};${destCoords[0]},${destCoords[1]}`;
-        const url = `https://router.project-osrm.org/route/v1/car/${coordsParam}?overview=full&geometries=geojson&steps=true`;
+        const url = `https://router.project-osrm.org/route/v1/car/${coordsParam}?overview=full&geometries=geojson&steps=true&annotations=maxspeed`;
         const res = await fetch(url);
         const data = await res.json();
 
@@ -1586,7 +1577,30 @@
         driveEtaTime.textContent = eta.clock;
         driveEtaSub.textContent = `Nog ${eta.mins} min`;
 
-        // Verzamel alle stappen over alle legs (ook bij een laadstop-tussenpunt)
+        // Bouw de exacte snelheidskaart op vanuit de route-segmenten van OSRM
+        const geomCoords = (route.geometry && route.geometry.coordinates) || [];
+        const allMaxSpeeds = [];
+        if (route.legs) {
+          route.legs.forEach(leg => {
+            if (leg.annotation && Array.isArray(leg.annotation.maxspeed)) {
+              allMaxSpeeds.push(...leg.annotation.maxspeed);
+            }
+          });
+        }
+
+        const newSpeedSegments = [];
+        for (let i = 0; i < geomCoords.length; i++) {
+          const msObj = allMaxSpeeds[Math.min(i, allMaxSpeeds.length - 1)];
+          let spd = null;
+          if (msObj && typeof msObj.speed === 'number' && !msObj.unknown && !msObj.none) {
+            spd = msObj.unit === 'mph' ? Math.round(msObj.speed * 1.60934) : msObj.speed;
+          }
+          newSpeedSegments.push({ coord: geomCoords[i], speed: spd });
+        }
+        routeSpeedSegments = newSpeedSegments;
+        updateMaxSpeedFromRoute();
+
+        // Verzamel en filter alle route-instructies
         const rawSteps = [];
         if (route.legs) {
           route.legs.forEach(leg => {
@@ -1610,8 +1624,27 @@
               }
             }
 
+            // Herken turborotondes die in OSM als korte links+rechts-lus (< 65 m) getekend zijn
+            let stepType = s.maneuver.type;
+            let stepExit = s.maneuver.exit || null;
             let exitBearingAfter = s.maneuver.bearing_after;
-            if (isRoundaboutType(s.maneuver.type)) {
+
+            if (!isRoundaboutType(stepType) && stepType !== 'arrive' && i + 1 < rawSteps.length) {
+              const nextS = rawSteps[i + 1];
+              const m1 = s.maneuver.modifier || '';
+              const m2 = nextS.maneuver.modifier || '';
+              const dBetween = distanceMeters(s.maneuver.location, nextS.maneuver.location);
+              if (dBetween > 5 && dBetween < 65 &&
+                  ((m1.includes('left') && m2.includes('right')) || (m1.includes('right') && m2.includes('left')))) {
+                stepType = 'roundabout';
+                exitBearingAfter = nextS.maneuver.bearing_after;
+                const turnDiff = ((exitBearingAfter - s.maneuver.bearing_before + 540) % 360) - 180;
+                stepExit = turnDiff > 45 ? 1 : (turnDiff < -45 ? 3 : 2);
+                i++; // Sla de uitrij-knik van deze rotonde over
+              }
+            }
+
+            if (isRoundaboutType(stepType) && stepType === s.maneuver.type) {
               const exitStep = rawSteps.slice(i + 1, i + 4).find(ns => ns.maneuver.type === 'exit roundabout' || ns.maneuver.type === 'exit rotary');
               if (exitStep && typeof exitStep.maneuver.bearing_after === 'number') {
                 exitBearingAfter = exitStep.maneuver.bearing_after;
@@ -1619,13 +1652,13 @@
             }
 
             const loc = s.maneuver.location;
-            const key = `${loc[0].toFixed(3)},${loc[1].toFixed(3)}_${s.maneuver.type}`;
+            const key = `${loc[0].toFixed(3)},${loc[1].toFixed(3)}_${stepType}`;
             processed.push({
               key,
               location: loc,
-              type: s.maneuver.type,
+              type: stepType,
               modifier: s.maneuver.modifier || '',
-              exit: s.maneuver.exit || null,
+              exit: stepExit,
               bearingBefore: s.maneuver.bearing_before,
               bearingAfter: exitBearingAfter,
               name: s.name || ''
@@ -1652,7 +1685,6 @@
       if (!lastRouteGeoJson || !lastRouteGeoJson.geometry || !lastRouteGeoJson.geometry.coordinates) return;
       const coords = lastRouteGeoJson.geometry.coordinates;
 
-      // Zoek een punt ~500m verderop op de route en verplaats dat 450m zijwaarts om een alternatieve route af te dwingen
       let acc = 0;
       let blockPt = coords[Math.min(5, coords.length - 1)];
       for (let i = 1; i < coords.length; i++) {
@@ -1672,10 +1704,26 @@
       calculateRoute(true);
     });
 
-    // 14. Witte SVG-pijlen & Rotonde-icoon met echt pijltje op de exacte klokpositie
+    // 14. Witte SVG-pijlen & Rotonde-icoon + getrapt aftellen van afstand
     const turnIconBox = document.getElementById('turnIconBox');
     const turnDist = document.getElementById('turnDist');
     const turnStreet = document.getElementById('turnStreet');
+
+    function formatStepDistance(meters) {
+      if (meters >= 1000) {
+        return `${(meters / 1000).toFixed(1)} km`;
+      }
+      if (meters > 800) {
+        return `${Math.floor(meters / 100) * 100} m`;
+      }
+      if (meters >= 300) {
+        return `${Math.floor(meters / 100) * 100} m`;
+      }
+      if (meters >= 50) {
+        return `${Math.floor(meters / 50) * 50} m`;
+      }
+      return `${Math.max(0, Math.round(meters))} m`;
+    }
 
     function getDutchOrdinal(n) {
       const ordinals = { 1: 'eerste', 2: 'tweede', 3: 'derde', 4: 'vierde', 5: 'vijfde', 6: 'zesde' };
@@ -1751,7 +1799,7 @@
       const label = getManeuverLabel(nextStep);
 
       turnIconBox.innerHTML = buildTurnSvg(nextStep);
-      turnDist.textContent = dist >= 1000 ? `${(dist / 1000).toFixed(1)} km` : `${dist} m`;
+      turnDist.textContent = formatStepDistance(dist);
       turnStreet.textContent = nextStep.name ? `${label} • ${nextStep.name}` : label;
 
       if (!isNavigating) return;
@@ -1794,7 +1842,7 @@
       requestWakeLock();
       startTracking(true);
       fetchChargersSilently(true);
-      updateMaxSpeedIfNeeded(true);
+      updateMaxSpeedFromRoute();
       playBeeps(1);
     });
 
@@ -1822,6 +1870,7 @@
       viaWaypoint = null;
       lastRouteGeoJson = null;
       routeSteps = [];
+      routeSpeedSegments = [];
       announcedWarnings.clear();
       map.easeTo({ pitch: 0, padding: { top: 0, bottom: 0, left: 0, right: 0 }, duration: 500 });
       fetchChargersSilently(true);
