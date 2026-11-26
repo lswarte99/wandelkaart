@@ -3,11 +3,11 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>Wandel mee met Paul Signac — Rotterdam</title>
+  <title>Dudok in Hilversum — Architectuurwandeling</title>
 
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
-  <meta name="theme-color" content="#1d4ed8" />
+  <meta name="theme-color" content="#B84A39" />
 
   <style>
     * {
@@ -101,12 +101,12 @@
     }
 
     .gps-btn.active {
-      background-color: #eff6ff;
-      border-color: #1d4ed8;
+      background-color: #fdf2f0;
+      border-color: #B84A39;
     }
 
     .gps-btn.active svg {
-      stroke: #1d4ed8;
+      stroke: #B84A39;
     }
 
     .gps-btn.searching svg {
@@ -123,10 +123,10 @@
 </head>
 <body>
 
-  <!-- uMap iframe gecentreerd op Rotterdam -->
+  <!-- uMap iframe gecentreerd op Hilversum -->
   <iframe 
     id="umap-frame" 
-    src="https://umap.openstreetmap.fr/nl/map/wandel-mee-met-paul-signac_1486693?scaleControl=false&miniMap=false&scrollWheelZoom=true&locateControl=false&zoomControl=false&fullscreenControl=false&shareControl=false&moreControl=false&datalayersControl=false&locale=nl#14/51.909702/4.482164" 
+    src="https://umap.openstreetmap.fr/nl/map/dudok-wandeling-hilversum_1489663?scaleControl=false&miniMap=false&scrollWheelZoom=true&locateControl=false&zoomControl=false&fullscreenControl=false&shareControl=false&moreControl=false&datalayersControl=false&locale=nl#14/52.220149/5.177221" 
     allow="geolocation *; autoplay; encrypted-media">
   </iframe>
 
@@ -153,7 +153,7 @@
     const btn = document.getElementById('gpsBtn');
     const marker = document.getElementById('user-marker');
 
-    const baseParams = "https://umap.openstreetmap.fr/nl/map/wandel-mee-met-paul-signac_1486693?scaleControl=false&miniMap=false&scrollWheelZoom=true&locateControl=false&zoomControl=false&fullscreenControl=false&shareControl=false&moreControl=false&datalayersControl=false&locale=nl";
+    const baseParams = "https://umap.openstreetmap.fr/nl/map/dudok-wandeling-hilversum_1489663?scaleControl=false&miniMap=false&scrollWheelZoom=true&locateControl=false&zoomControl=false&fullscreenControl=false&shareControl=false&moreControl=false&datalayersControl=false&locale=nl";
     let watchId = null;
 
     function resetGpsState() {
