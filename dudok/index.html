@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Wandel mee met Paul Signac — Rotterdam</title>
+
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="theme-color" content="#1d4ed8" />
+
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+    html, body {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background-color: #f2efe9;
+      font-family: sans-serif;
+    }
+
+    #umap-frame {
+      width: 100%;
+      height: 100%;
+      border: none;
+      display: block;
+    }
+
+    /* Vaste GPS-stip midden op het scherm */
+    #user-marker {
+      display: none;
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 22px;
+      height: 22px;
+      pointer-events: none;
+      z-index: 9998;
+    }
+
+    #user-marker .dot {
+      width: 14px;
+      height: 14px;
+      background-color: #2563eb;
+      border: 2.5px solid #ffffff;
+      border-radius: 50%;
+      position: absolute;
+      top: 4px;
+      left: 4px;
+      box-shadow: 0 0 6px rgba(0, 0, 0, 0.4);
+    }
+
+    #user-marker .ring {
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      background-color: rgba(37, 99, 235, 0.25);
+      animation: pulse-ring 2s infinite ease-out;
+    }
+
+    @keyframes pulse-ring {
+      0% { transform: scale(0.7); opacity: 0.8; }
+      100% { transform: scale(1.6); opacity: 0; }
+    }
+
+    /* Minimalistische vizier-knop */
+    .gps-btn {
+      position: absolute;
+      bottom: 24px;
+      right: 18px;
+      width: 48px;
+      height: 48px;
+      background-color: #ffffff;
+      border: 2px solid rgba(0, 0, 0, 0.15);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 3px 8px rgba(0, 0, 0, 0.25);
+      cursor: pointer;
+      z-index: 9999;
+      outline: none;
+      transition: background-color 0.2s, border-color 0.2s;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .gps-btn svg {
+      width: 24px;
+      height: 24px;
+      stroke: #444444;
+      stroke-width: 2;
+      fill: none;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      transition: stroke 0.2s;
+    }
+
+    .gps-btn.active {
+      background-color: #eff6ff;
+      border-color: #1d4ed8;
+    }
+
+    .gps-btn.active svg {
+      stroke: #1d4ed8;
+    }
+
+    .gps-btn.searching svg {
+      opacity: 0.4;
+      animation: pulse 1.2s infinite ease-in-out;
+    }
+
+    @keyframes pulse {
+      0% { transform: scale(0.9); opacity: 0.3; }
+      50% { transform: scale(1.08); opacity: 0.8; }
+      100% { transform: scale(0.9); opacity: 0.3; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- uMap iframe gecentreerd op Rotterdam -->
+  <iframe 
+    id="umap-frame" 
+    src="https://umap.openstreetmap.fr/nl/map/wandel-mee-met-paul-signac_1486693?scaleControl=false&miniMap=false&scrollWheelZoom=true&locateControl=false&zoomControl=false&fullscreenControl=false&shareControl=false&moreControl=false&datalayersControl=false&locale=nl#14/51.909702/4.482164" 
+    allow="geolocation *; autoplay; encrypted-media">
+  </iframe>
+
+  <!-- Visuele GPS-indicator (blauwe stip) -->
+  <div id="user-marker">
+    <div class="ring"></div>
+    <div class="dot"></div>
+  </div>
+
+  <!-- Symmetrisch 4-punts vizier -->
+  <button id="gpsBtn" class="gps-btn" title="Volg GPS-locatie" aria-label="Volg GPS-locatie">
+    <svg viewBox="0 0 24 24">
+      <circle cx="12" cy="12" r="7" />
+      <line x1="12" y1="1" x2="12" y2="5" />
+      <line x1="12" y1="19" x2="12" y2="23" />
+      <line x1="1" y1="12" x2="5" y2="12" />
+      <line x1="19" y1="12" x2="23" y2="12" />
+      <circle cx="12" cy="12" r="2" fill="#444444" stroke="none" />
+    </svg>
+  </button>
+
+  <script>
+    const iframe = document.getElementById('umap-frame');
+    const btn = document.getElementById('gpsBtn');
+    const marker = document.getElementById('user-marker');
+
+    const baseParams = "https://umap.openstreetmap.fr/nl/map/wandel-mee-met-paul-signac_1486693?scaleControl=false&miniMap=false&scrollWheelZoom=true&locateControl=false&zoomControl=false&fullscreenControl=false&shareControl=false&moreControl=false&datalayersControl=false&locale=nl";
+    let watchId = null;
+
+    function resetGpsState() {
+      if (watchId !== null) {
+        navigator.geolocation.clearWatch(watchId);
+        watchId = null;
+      }
+      btn.classList.remove('active', 'searching');
+      marker.style.display = 'none';
+    }
+
+    // Vizier knop aansturing
+    btn.addEventListener('click', () => {
+      if (watchId !== null) {
+        resetGpsState();
+      } else {
+        btn.classList.add('searching');
+
+        navigator.geolocation.getCurrentPosition(
+          (pos) => {
+            btn.classList.remove('searching');
+            btn.classList.add('active');
+            marker.style.display = 'block';
+
+            const lat = pos.coords.latitude.toFixed(5);
+            const lng = pos.coords.longitude.toFixed(5);
+            iframe.src = `${baseParams}&_t=${Date.now()}#16/${lat}/${lng}`;
+          },
+          (err) => {
+            resetGpsState();
+            alert('Geen satelliet-GPS fix: ' + err.message);
+          },
+          {
+            enableHighAccuracy: true,
+            timeout: 10000,
+            maximumAge: 0
+          }
+        );
+
+        watchId = navigator.geolocation.watchPosition(
+          (pos) => {
+            btn.classList.add('active');
+            marker.style.display = 'block';
+          },
+          null,
+          { enableHighAccuracy: true }
+        );
+      }
+    });
+  </script>
+</body>
+</html>
