@@ -19,6 +19,7 @@
       --terra-color: #c2410c;
       --brick-color: #b91c1c;
       --signac-color: #1d4ed8;
+      --dudok-color: #B84A39;
       --border-color: #e5e2db;
     }
     body {
@@ -81,6 +82,9 @@
     .card.signac:hover {
       border-color: var(--signac-color);
     }
+    .card.dudok:hover {
+      border-color: var(--dudok-color);
+    }
     .card-title {
       font-size: 1.15rem;
       font-weight: 600;
@@ -95,6 +99,9 @@
     }
     .card.signac .card-title {
       color: var(--signac-color);
+    }
+    .card.dudok .card-title {
+      color: var(--dudok-color);
     }
     .card-desc {
       font-size: 0.85rem;
@@ -148,6 +155,15 @@
         <div>
           <h2 class="card-title">Wandel mee met Paul Signac</h2>
           <p class="card-desc">Stadswandeling in Rotterdam langs havens en kunst. (5K)</p>
+        </div>
+        <div class="arrow">&rarr;</div>
+      </a>
+
+      <!-- Dudok Architectuurwandeling (Hilversum) -->
+      <a href="./dudok/" class="card dudok">
+        <div>
+          <h2 class="card-title">Dudok in Hilversum</h2>
+          <p class="card-desc">Architectuurwandeling langs het Raadhuis, scholen en de tuinstadwijk.</p>
         </div>
         <div class="arrow">&rarr;</div>
       </a>
