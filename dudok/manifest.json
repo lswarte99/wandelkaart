@@ -1,0 +1,18 @@
+{
+  "name": "Dudok in Hilversum",
+  "short_name": "Dudok",
+  "description": "Architectuurwandeling langs Dudok-gebouwen in Hilversum",
+  "start_url": "/wandelkaart/dudok/",
+  "scope": "/wandelkaart/dudok/",
+  "display": "standalone",
+  "background_color": "#f2efe9",
+  "theme_color": "#B84A39",
+  "icons": [
+    {
+      "src": "../icon.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
