@@ -5,14 +5,14 @@
   "start_url": "/wandelkaart/dudok/",
   "scope": "/wandelkaart/dudok/",
   "display": "standalone",
-  "background_color": "#f2efe9",
+  "background_color": "#B84A39",
   "theme_color": "#B84A39",
   "icons": [
     {
-      "src": "dudok.svg",
-      "sizes": "any",
-      "type": "image/svg+xml",
-      "purpose": "any maskable"
+      "src": "dudok.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
     }
   ]
 }
